@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
-import { Home, Search, Heart, LayoutDashboard, LogOut, Menu, X, PlusCircle, MessageSquare, User, Building2 } from 'lucide-react';
+import { getUnreadNotificationCount } from '@/api/payments';
+import { Home, Search, Heart, LayoutDashboard, LogOut, Menu, X, PlusCircle, MessageSquare, User, Building2, Bell, CreditCard, History } from 'lucide-react';
 
 const navLinkClass = ({ isActive }) =>
   `flex items-center gap-1.5 text-sm font-medium transition-colors ${
@@ -12,6 +14,14 @@ export default function Navbar() {
   const { user, isAuthenticated, isHost, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const { data: unreadData } = useQuery({
+    queryKey: ['unread-notifications'],
+    queryFn: getUnreadNotificationCount,
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+  const unreadCount = unreadData?.count || 0;
 
   const handleLogout = async () => {
     await logout();
@@ -41,6 +51,20 @@ export default function Navbar() {
               </NavLink>
               <NavLink to="/enquiries" className={navLinkClass}>
                 <MessageSquare className="h-4 w-4" /> Enquiries
+              </NavLink>
+              <NavLink to="/bookings" className={navLinkClass}>
+                <CreditCard className="h-4 w-4" /> Bookings
+              </NavLink>
+              <NavLink to="/notifications" className={navLinkClass}>
+                <span className="relative">
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </span>
+                Notifications
               </NavLink>
               {isHost && (
                 <>
@@ -109,15 +133,29 @@ export default function Navbar() {
             <NavLink to="/properties" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               <Search className="h-4 w-4" /> Properties
             </NavLink>
-            {isAuthenticated && (
-              <>
-                <NavLink to="/saved" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  <Heart className="h-4 w-4" /> Saved
-                </NavLink>
-                <NavLink to="/enquiries" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  <MessageSquare className="h-4 w-4" /> Enquiries
-                </NavLink>
-                {isHost && (
+              {isAuthenticated && (
+            <>
+              <NavLink to="/saved" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <Heart className="h-4 w-4" /> Saved
+              </NavLink>
+              <NavLink to="/enquiries" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <MessageSquare className="h-4 w-4" /> Enquiries
+              </NavLink>
+              <NavLink to="/bookings" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <CreditCard className="h-4 w-4" /> Bookings
+              </NavLink>
+              <NavLink to="/notifications" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <span className="relative">
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </span>
+                Notifications
+              </NavLink>
+              {isHost && (
                   <>
                     <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
                       <LayoutDashboard className="h-4 w-4" /> Dashboard
@@ -132,9 +170,12 @@ export default function Navbar() {
             <hr className="my-2" />
             {isAuthenticated ? (
               <>
-                <NavLink to="/profile" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                  <User className="h-4 w-4" /> Profile
-                </NavLink>
+              <NavLink to="/profile" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <User className="h-4 w-4" /> Profile
+              </NavLink>
+              <NavLink to="/payment-history" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                <History className="h-4 w-4" /> Payment History
+              </NavLink>
                 {isHost && (
                   <Link
                     to="/properties/create"

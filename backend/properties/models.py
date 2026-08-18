@@ -32,6 +32,7 @@ class Property(models.Model):
         ("draft", "Draft"),
         ("active", "Active"),
         ("inactive", "Inactive"),
+        ("rented", "Rented"),
         ("sold", "Sold"),
     ]
 

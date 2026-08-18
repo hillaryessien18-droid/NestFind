@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import useEmblaCarousel from 'embla-carousel-react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import { MapPin, BedDouble, Bath, Maximize, Heart, Star, Send, ChevronLeft, ChevronRight, Users, Home } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Maximize, Heart, Star, Send, ChevronLeft, ChevronRight, Users, Home, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createEnquiry } from '@/api/enquiries';
 import { getProperty, getPropertyReviews, getSimilarProperties } from '@/api/properties';
@@ -315,8 +315,14 @@ export default function PropertyDetail() {
             </div>
 
             <div className="mt-6 space-y-3">
-              {isAuthenticated && !isOwner && (
+              {isAuthenticated && !isOwner && property.status === 'active' && (
                 <>
+                  <Link
+                    to={`/payment/${id}`}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                  >
+                    <CreditCard className="h-4 w-4" /> Rent / Buy Property
+                  </Link>
                   <button
                     onClick={() => setShowEnquiry(!showEnquiry)}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"
@@ -333,7 +339,18 @@ export default function PropertyDetail() {
                   </button>
                 </>
               )}
-              {!isAuthenticated && (
+              {property.status !== 'active' && (
+                <div className={`rounded-xl py-3 text-center text-sm font-semibold ${
+                  property.status === 'rented' ? 'bg-amber-50 text-amber-700' :
+                  property.status === 'sold' ? 'bg-red-50 text-red-700' :
+                  'bg-gray-100 text-gray-600'
+                }`}>
+                  {property.status === 'rented' ? 'This property is currently rented' :
+                   property.status === 'sold' ? 'This property has been sold' :
+                   `Property is ${property.status}`}
+                </div>
+              )}
+              {!isAuthenticated && property.status === 'active' && (
                 <Link
                   to="/login"
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"

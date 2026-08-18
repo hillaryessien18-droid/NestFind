@@ -27,17 +27,17 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Company</h3>
             <ul className="mt-3 space-y-2">
-              <li><span className="text-sm text-gray-500">About Us</span></li>
-              <li><span className="text-sm text-gray-500">Careers</span></li>
-              <li><span className="text-sm text-gray-500">Blog</span></li>
-              <li><span className="text-sm text-gray-500">Support</span></li>
+              <li><Link to="/about" className="text-sm text-gray-500 hover:text-primary-600">About Us</Link></li>
+              <li><Link to="/careers" className="text-sm text-gray-500 hover:text-primary-600">Careers</Link></li>
+              <li><Link to="/blog" className="text-sm text-gray-500 hover:text-primary-600">Blog</Link></li>
+              <li><a href="mailto:support@nestfind.com" className="text-sm text-gray-500 hover:text-primary-600">Support</a></li>
             </ul>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Legal</h3>
             <ul className="mt-3 space-y-2">
-              <li><span className="text-sm text-gray-500">Privacy Policy</span></li>
-              <li><span className="text-sm text-gray-500">Terms of Service</span></li>
+              <li><Link to="/privacy" className="text-sm text-gray-500 hover:text-primary-600">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-sm text-gray-500 hover:text-primary-600">Terms of Service</Link></li>
             </ul>
           </div>
         </div>

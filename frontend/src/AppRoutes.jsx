@@ -13,6 +13,16 @@ import MyProperties from '@/pages/MyProperties';
 import SavedProperties from '@/pages/SavedProperties';
 import Enquiries from '@/pages/Enquiries';
 import Profile from '@/pages/Profile';
+import Payment from '@/pages/Payment';
+import PaymentSuccess from '@/pages/PaymentSuccess';
+import PaymentHistory from '@/pages/PaymentHistory';
+import Bookings from '@/pages/Bookings';
+import Notifications from '@/pages/Notifications';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
+import TermsOfService from '@/pages/TermsOfService';
+import About from '@/pages/About';
+import Careers from '@/pages/Careers';
+import Blog from '@/pages/Blog';
 import NotFound from '@/pages/NotFound';
 
 export default function AppRoutes() {
@@ -24,11 +34,21 @@ export default function AppRoutes() {
         <Route path="register" element={<Register />} />
         <Route path="properties" element={<Properties />} />
         <Route path="properties/:id" element={<PropertyDetail />} />
+        <Route path="about" element={<About />} />
+        <Route path="careers" element={<Careers />} />
+        <Route path="blog" element={<Blog />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="terms" element={<TermsOfService />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="profile" element={<Profile />} />
           <Route path="saved" element={<SavedProperties />} />
           <Route path="enquiries" element={<Enquiries />} />
+          <Route path="payment/:id" element={<Payment />} />
+          <Route path="payment/success" element={<PaymentSuccess />} />
+          <Route path="payment-history" element={<PaymentHistory />} />
+          <Route path="bookings" element={<Bookings />} />
+          <Route path="notifications" element={<Notifications />} />
 
           <Route element={<ProtectedRoute allowedRoles={['host']} />}>
             <Route path="dashboard" element={<Dashboard />} />

@@ -1,4 +1,4 @@
-import { MapPin, BedDouble, Bath, Maximize, Heart } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Maximize, Heart, Home as HomeIcon, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPrice } from '@/utils/format';
 
@@ -14,9 +14,16 @@ const TYPE_LABELS = {
   room: 'Room',
 };
 
+const STATUS_BADGES = {
+  rented: { label: 'Rented', className: 'bg-amber-500 text-white' },
+  sold: { label: 'Sold', className: 'bg-red-500 text-white' },
+  inactive: { label: 'Unavailable', className: 'bg-gray-500 text-white' },
+};
+
 export default function PropertyCard({ property, isSaved = false, onToggleSave }) {
   const imageUrl = property.primary_image || PLACEHOLDER_IMG;
   const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
+  const statusBadge = STATUS_BADGES[property.status];
 
   return (
     <div className="group overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-md">
@@ -26,13 +33,20 @@ export default function PropertyCard({ property, isSaved = false, onToggleSave }
             src={imageUrl}
             alt={property.title}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+              statusBadge ? 'opacity-70' : ''
+            }`}
           />
         </Link>
-        <div className="absolute left-3 top-3">
+        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
           <span className="rounded bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-800 shadow-sm">
             {typeLabel}
           </span>
+          {statusBadge && (
+            <span className={`flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-bold shadow-sm ${statusBadge.className}`}>
+              <Tag className="h-3 w-3" /> {statusBadge.label}
+            </span>
+          )}
         </div>
         {onToggleSave && (
           <button
