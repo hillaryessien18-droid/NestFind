@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Loader2, Home, ArrowRight } from 'lucide-react';
-import { verifyPayment } from '@/api/payments';
+import { CheckCircle, XCircle, Loader2, Home, ArrowRight, ReceiptText } from 'lucide-react';
+import { verifyPayment, getTenantDetails } from '@/api/payments';
+import TenantDetailsForm from '@/components/ui/TenantDetailsForm';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const txRef = searchParams.get('tx_ref');
-  const [result, setResult] = useState(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data: result, isLoading, error } = useQuery({
     queryKey: ['payment-verify', txRef],
     queryFn: () => verifyPayment(txRef),
     enabled: !!txRef,
@@ -18,13 +18,23 @@ export default function PaymentSuccess() {
   });
 
   useEffect(() => {
-    if (data) {
-      setResult(data);
+    if (result) {
       queryClient.invalidateQueries(['payment-history']);
       queryClient.invalidateQueries(['bookings']);
       queryClient.invalidateQueries(['notifications']);
     }
-  }, [data, queryClient]);
+  }, [result, queryClient]);
+
+  const isSuccessful = result?.status === 'successful';
+  const bookingId = result?.booking_id;
+
+  const detailsQuery = useQuery({
+    queryKey: ['tenant-details', bookingId],
+    queryFn: () => getTenantDetails(bookingId),
+    enabled: isSuccessful && !!bookingId,
+    retry: false,
+  });
+  const hasDetails = !!detailsQuery.data;
 
   if (!txRef) {
     return (
@@ -78,20 +88,41 @@ export default function PaymentSuccess() {
     );
   }
 
-  const isSuccessful = result.status === 'successful';
-
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
       {isSuccessful ? (
         <>
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-            <CheckCircle className="h-12 w-12 text-green-600" />
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+              <CheckCircle className="h-12 w-12 text-green-600" />
+            </div>
+            <h1 className="mt-6 text-2xl font-bold text-gray-900">Payment Successful!</h1>
+            <p className="mt-2 max-w-md text-center text-gray-500">
+              Your payment has been confirmed. A welcome message has been sent to your email and inbox.
+              Thank you for choosing NestFind!
+            </p>
           </div>
-          <h1 className="mt-6 text-2xl font-bold text-gray-900">Payment Successful!</h1>
-          <p className="mt-2 max-w-md text-center text-gray-500">
-            Your payment has been confirmed. A welcome message has been sent to your email and inbox.
-            Thank you for choosing NestFind!
-          </p>
+
+          <div className="mt-8">
+            <TenantDetailsForm bookingId={bookingId} onDone={() => detailsQuery.refetch()} />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to={`/receipt/${txRef}`}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
+            >
+              <ReceiptText className="h-4 w-4" /> View Receipt
+            </Link>
+            {hasDetails && (
+              <Link
+                to="/bookings"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
+              >
+                View My Bookings <ArrowRight className="h-4 w-4" />
+              </Link>
+            )}
+          </div>
         </>
       ) : (
         <>
@@ -106,7 +137,7 @@ export default function PaymentSuccess() {
       )}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        {isSuccessful && result.booking_id && (
+        {!isSuccessful && result.booking_id && (
           <Link
             to="/bookings"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
@@ -114,12 +145,14 @@ export default function PaymentSuccess() {
             View My Bookings <ArrowRight className="h-4 w-4" />
           </Link>
         )}
-        <Link
-          to="/payment-history"
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-        >
-          Payment History
-        </Link>
+        {isSuccessful && (
+          <Link
+            to="/payment-history"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Payment History
+          </Link>
+        )}
         <Link
           to="/"
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"

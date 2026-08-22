@@ -1,27 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Eye, MessageSquare, Home, Star } from 'lucide-react';
+import { Eye, MessageSquare, Home, Star, ReceiptText, Wallet, CalendarCheck, Loader2 } from 'lucide-react';
 import { getHostDashboard } from '@/api/dashboard';
+import { getBookings } from '@/api/payments';
+import { useAuth } from '@/hooks/useAuth';
+import { formatNaira } from '@/utils/format';
 
 const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export default function Dashboard() {
-  const { data: dashboard, isLoading } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: getHostDashboard,
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
-      </div>
-    );
-  }
-
-  if (!dashboard) return null;
-
+function HostDashboard({ dashboard }) {
   const { summary, views_by_property, enquiries_by_status, recent_enquiries } = dashboard;
 
   const statusData = Object.entries(enquiries_by_status || {}).map(([name, value]) => ({
@@ -30,12 +18,7 @@ export default function Dashboard() {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Host Dashboard</h1>
-        <p className="mt-1 text-gray-500">Overview of your properties and activity</p>
-      </div>
-
+    <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {[
           { icon: Home, label: 'Total Properties', value: summary.total_properties, color: 'bg-primary-50 text-primary-600' },
@@ -123,6 +106,139 @@ export default function Dashboard() {
           <p className="py-8 text-center text-gray-400">No enquiries yet</p>
         )}
       </div>
+    </>
+  );
+}
+
+function TenantDashboard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['bookings'],
+    queryFn: () => getBookings(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[30vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
+  const bookings = data?.results || data || [];
+  const paidBookings = bookings.filter((b) => b.status === 'confirmed');
+  const totalPaid = paidBookings.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+
+  const stats = [
+    { icon: CalendarCheck, label: 'Active Rentals', value: paidBookings.length, color: 'bg-emerald-50 text-emerald-600' },
+    { icon: Home, label: 'Total Bookings', value: bookings.length, color: 'bg-primary-50 text-primary-600' },
+    { icon: Wallet, label: 'Total Paid', value: formatNaira(totalPaid), color: 'bg-purple-50 text-purple-600' },
+  ];
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-3 mb-8">
+        {stats.map((stat) => (
+          <div key={stat.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${stat.color}`}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            <ReceiptText className="h-5 w-5 text-primary-600" /> Rent Payments & Receipts
+          </h2>
+          <Link to="/payment-history" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
+            Payment history
+          </Link>
+        </div>
+
+        {paidBookings.length === 0 ? (
+          <div className="py-10 text-center">
+            <ReceiptText className="mx-auto h-10 w-10 text-gray-300" />
+            <p className="mt-3 text-sm text-gray-500">No rent payments yet.</p>
+            <Link
+              to="/properties"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-700"
+            >
+              Browse Properties
+            </Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {paidBookings.map((booking) => (
+              <div key={booking.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">{booking.property_title}</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Paid on {new Date(booking.updated_at).toLocaleDateString()}
+                    {booking.months ? ` • ${booking.months} month(s)` : ''}
+                    {booking.receipt_tx_ref ? ` • Ref ${booking.receipt_tx_ref}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 sm:shrink-0">
+                  <span className="font-bold text-gray-900">{formatNaira(booking.amount)}</span>
+                  {booking.receipt_tx_ref && (
+                    <Link
+                      to={`/receipt/${booking.receipt_tx_ref}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 hover:bg-primary-100"
+                    >
+                      <ReceiptText className="h-3.5 w-3.5" /> View Receipt
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function Dashboard() {
+  const { user } = useAuth();
+  const isTenantView = user?.role !== 'host';
+
+  const { data: dashboard, isLoading } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getHostDashboard,
+    enabled: !isTenantView,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {isTenantView ? 'My Dashboard' : 'Host Dashboard'}
+        </h1>
+        <p className="mt-1 text-gray-500">
+          {isTenantView ? 'Your rentals, payments and receipts' : 'Overview of your properties and activity'}
+        </p>
+      </div>
+
+      {isTenantView ? (
+        <TenantDashboard />
+      ) : dashboard ? (
+        <HostDashboard dashboard={dashboard} />
+      ) : null}
     </div>
   );
 }

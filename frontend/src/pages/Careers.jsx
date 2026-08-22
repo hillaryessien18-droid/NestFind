@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronLeft, MapPin, Globe, Rocket, Shield, Smartphone, Heart, Zap, Users, Code, Lightbulb, Target } from 'lucide-react';
+import { ChevronLeft, MapPin, Globe, Rocket, Shield, Smartphone, Heart, Zap, Users, Code, Lightbulb, Target, Clock } from 'lucide-react';
 
 const PERKS = [
   { icon: Heart, title: 'Health Insurance', description: 'Comprehensive health coverage for you and your family' },

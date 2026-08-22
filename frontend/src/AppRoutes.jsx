@@ -18,6 +18,7 @@ import PaymentSuccess from '@/pages/PaymentSuccess';
 import PaymentHistory from '@/pages/PaymentHistory';
 import Bookings from '@/pages/Bookings';
 import Notifications from '@/pages/Notifications';
+import Receipt from '@/pages/Receipt';
 import PrivacyPolicy from '@/pages/PrivacyPolicy';
 import TermsOfService from '@/pages/TermsOfService';
 import About from '@/pages/About';
@@ -49,9 +50,10 @@ export default function AppRoutes() {
           <Route path="payment-history" element={<PaymentHistory />} />
           <Route path="bookings" element={<Bookings />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="receipt/:txRef" element={<Receipt />} />
+          <Route path="dashboard" element={<Dashboard />} />
 
           <Route element={<ProtectedRoute allowedRoles={['host']} />}>
-            <Route path="dashboard" element={<Dashboard />} />
             <Route path="my-properties" element={<MyProperties />} />
             <Route path="properties/create" element={<CreateProperty />} />
             <Route path="properties/:id/edit" element={<EditProperty />} />

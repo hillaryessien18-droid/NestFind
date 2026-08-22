@@ -15,6 +15,8 @@ from .serializers import (
     PaymentTransactionSerializer,
     NotificationSerializer,
     PaymentInitializeSerializer,
+    ReceiptSerializer,
+    TenantDetailSerializer,
 )
 from .services import initialize_payment, verify_payment, generate_tx_ref
 
@@ -311,6 +313,22 @@ class PaymentWebhookView(generics.GenericAPIView):
         return Response({"status": "ok"})
 
 
+class PaymentReceiptView(generics.RetrieveAPIView):
+    """Return the full payment receipt for a verified transaction."""
+    serializer_class = ReceiptSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "tx_ref"
+    lookup_url_kwarg = "tx_ref"
+
+    def get_object(self):
+        tx = generics.get_object_or_404(
+            PaymentTransaction,
+            tx_ref=self.kwargs["tx_ref"],
+            booking__user=self.request.user,
+        )
+        return {"transaction": tx, "booking": tx.booking}
+
+
 class BookingViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -319,6 +337,27 @@ class BookingViewSet(viewsets.ReadOnlyModelViewSet):
         return Booking.objects.filter(user=self.request.user).select_related(
             "property", "property__user"
         )
+
+    @action(detail=True, methods=["get", "post"], url_path="tenant-details")
+    def tenant_details(self, request, pk=None):
+        booking = self.get_object()
+
+        if request.method == "GET":
+            details = getattr(booking, "tenant_details", None)
+            if not details:
+                return Response({"detail": "No tenant details submitted yet."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(TenantDetailSerializer(details).data)
+
+        existing = getattr(booking, "tenant_details", None)
+        serializer = TenantDetailSerializer(
+            existing,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(booking=booking)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if not existing else status.HTTP_200_OK)
 
 
 class PaymentHistoryView(generics.ListAPIView):

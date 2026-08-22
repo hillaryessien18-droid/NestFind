@@ -28,4 +28,9 @@ urlpatterns = [
         views.PaymentHistoryView.as_view(),
         name="payment-history",
     ),
+    path(
+        "payments/receipt/<str:tx_ref>/",
+        views.PaymentReceiptView.as_view(),
+        name="payment-receipt",
+    ),
 ]

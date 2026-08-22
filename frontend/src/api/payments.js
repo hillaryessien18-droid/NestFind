@@ -9,6 +9,15 @@ export const verifyPayment = (txRef) =>
 export const getPaymentHistory = (params) =>
   apiClient.get('/payments/history/', { params }).then((res) => res.data);
 
+export const getPaymentReceipt = (txRef) =>
+  apiClient.get(`/payments/receipt/${txRef}/`).then((res) => res.data);
+
+export const getTenantDetails = (bookingId) =>
+  apiClient.get(`/bookings/${bookingId}/tenant-details/`).then((res) => res.data);
+
+export const submitTenantDetails = (bookingId, data) =>
+  apiClient.post(`/bookings/${bookingId}/tenant-details/`, data).then((res) => res.data);
+
 export const getBookings = (params) =>
   apiClient.get('/bookings/', { params }).then((res) => res.data);
 

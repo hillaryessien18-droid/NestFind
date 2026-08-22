@@ -11,7 +11,7 @@ const navLinkClass = ({ isActive }) =>
   }`;
 
 export default function Navbar() {
-  const { user, isAuthenticated, isHost, logout } = useAuth();
+  const { user, isAuthenticated, isHost, isTenant, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -66,11 +66,13 @@ export default function Navbar() {
                 </span>
                 Notifications
               </NavLink>
+              {(isHost || isTenant) && (
+                <NavLink to="/dashboard" className={navLinkClass}>
+                  <LayoutDashboard className="h-4 w-4" /> Dashboard
+                </NavLink>
+              )}
               {isHost && (
                 <>
-                  <NavLink to="/dashboard" className={navLinkClass}>
-                    <LayoutDashboard className="h-4 w-4" /> Dashboard
-                  </NavLink>
                   <NavLink to="/my-properties" className={navLinkClass}>
                     <Building2 className="h-4 w-4" /> My Properties
                   </NavLink>
@@ -155,15 +157,15 @@ export default function Navbar() {
                 </span>
                 Notifications
               </NavLink>
+              {(isHost || isTenant) && (
+                  <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    <LayoutDashboard className="h-4 w-4" /> Dashboard
+                  </NavLink>
+              )}
               {isHost && (
-                  <>
-                    <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                      <LayoutDashboard className="h-4 w-4" /> Dashboard
-                    </NavLink>
-                    <NavLink to="/my-properties" className={navLinkClass} onClick={() => setMobileOpen(false)}>
-                      <Building2 className="h-4 w-4" /> My Properties
-                    </NavLink>
-                  </>
+                  <NavLink to="/my-properties" className={navLinkClass} onClick={() => setMobileOpen(false)}>
+                    <Building2 className="h-4 w-4" /> My Properties
+                  </NavLink>
                 )}
               </>
             )}

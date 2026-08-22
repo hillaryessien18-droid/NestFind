@@ -73,6 +73,32 @@ class PaymentTransaction(models.Model):
         return f"Payment {self.tx_ref} - {self.status}"
 
 
+class TenantDetail(models.Model):
+    """Move-in / tenant information filled in after a successful payment."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    booking = models.OneToOneField(
+        Booking,
+        on_delete=models.CASCADE,
+        related_name="tenant_details",
+    )
+    phone = models.CharField(max_length=20, blank=True)
+    current_address = models.TextField(blank=True)
+    occupation = models.CharField(max_length=120, blank=True)
+    next_of_kin_name = models.CharField(max_length=255, blank=True)
+    next_of_kin_phone = models.CharField(max_length=20, blank=True)
+    id_number = models.CharField(max_length=50, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Tenant details for {self.booking}"
+
+
 class Notification(models.Model):
     TYPE_CHOICES = [
         ("welcome", "Welcome"),

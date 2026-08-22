@@ -36,3 +36,19 @@ body {
   width: 100%;
   border-radius: 0.75rem;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #rent-receipt,
+  #rent-receipt * {
+    visibility: visible;
+  }
+  #rent-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
