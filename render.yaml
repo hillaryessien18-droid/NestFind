@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: nestfind-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2
+    healthCheckPath: /api/stats/
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        sync: false
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: FLW_PUBLIC_KEY
+        sync: false
+      - key: FLW_SECRET_KEY
+        sync: false
+      - key: FLW_ENCRYPTION_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: USE_CLOUDINARY
+        value: "true"
+      - key: EMAIL_BACKEND
+        value: django.core.mail.backends.smtp.EmailBackend
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false

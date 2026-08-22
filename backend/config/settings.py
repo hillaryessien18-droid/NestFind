@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import urlparse, parse_qsl, unquote
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -63,7 +64,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-if os.getenv("DB_HOST") and os.getenv("DATABASE_URL") is None:
+def _parse_database_url(url):
+    """Parse a postgres:// or postgresql:// URL into Django DATABASES config."""
+    parsed = urlparse(url)
+    query = dict(parse_qsl(parsed.query))
+    sslmode = query.get("sslmode", "require" if "neon.tech" in (parsed.hostname or "") else None)
+    db = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname,
+        "PORT": parsed.port or 5432,
+    }
+    if sslmode:
+        db["OPTIONS"] = {"sslmode": sslmode}
+    return db
+
+
+_database_url = os.getenv("DATABASE_URL")
+if _database_url:
+    DATABASES = {"default": _parse_database_url(_database_url)}
+elif os.getenv("DB_HOST"):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -72,6 +94,7 @@ if os.getenv("DB_HOST") and os.getenv("DATABASE_URL") is None:
             "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
             "HOST": os.getenv("DB_HOST", "localhost"),
             "PORT": os.getenv("DB_PORT", "5432"),
+            "OPTIONS": {"sslmode": "require"} if "neon.tech" in os.getenv("DB_HOST", "") else {},
         }
     }
 else:
@@ -177,3 +200,11 @@ if os.getenv("USE_CLOUDINARY") == "true" and os.getenv("CLOUDINARY_CLOUD_NAME"):
     STORAGES["default"] = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     }
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True").lower() == "true"
