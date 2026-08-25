@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Calendar, ArrowRight, Clock, Tag } from 'lucide-react';
+import { ChevronLeft, Calendar, ArrowRight, Clock } from 'lucide-react';
 
 const BLOG_POSTS = [
   {

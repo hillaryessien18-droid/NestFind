@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Calendar, CreditCard, Home, Clock, ChevronLeft, Loader2 } from 'lucide-react';
@@ -11,7 +11,6 @@ import { formatPrice, formatNaira } from '@/utils/format';
 
 export default function Payment() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [paymentType, setPaymentType] = useState('rent');
 

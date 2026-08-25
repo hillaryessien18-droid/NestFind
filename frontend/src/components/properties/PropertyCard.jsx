@@ -1,4 +1,4 @@
-import { MapPin, BedDouble, Bath, Maximize, Heart, Home as HomeIcon, Tag } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Maximize, Heart, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatPrice } from '@/utils/format';
 

@@ -11,7 +11,7 @@ import {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('access_token'));
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -28,8 +28,6 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('access_token');
     if (token) {
       fetchProfile().finally(() => setLoading(false));
-    } else {
-      setLoading(false);
     }
   }, [fetchProfile]);
 
