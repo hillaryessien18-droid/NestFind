@@ -6,7 +6,18 @@ import { getProperties } from '@/api/properties';
 import PropertyCard from '@/components/properties/PropertyCard';
 import { SkeletonList } from '@/components/ui/Skeleton';
 
-const PROPERTY_TYPES = ['apartment', 'house', 'condo', 'studio', 'villa', 'townhouse', 'room'];
+const PROPERTY_TYPES = [
+  { value: 'self_contain', label: 'Self-Contain' },
+  { value: 'mini_flat', label: 'Mini Flat' },
+  { value: 'flat', label: 'Flat' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'house', label: 'House' },
+  { value: 'condo', label: 'Condo' },
+  { value: 'studio', label: 'Studio' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'townhouse', label: 'Townhouse' },
+  { value: 'room', label: 'Room' },
+];
 const SORT_OPTIONS = [
   { value: '-created_at', label: 'Newest' },
   { value: 'price', label: 'Price: Low to High' },
@@ -120,8 +131,8 @@ export default function Properties() {
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
               >
                 <option value="">All Types</option>
-                {PROPERTY_TYPES.map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                {PROPERTY_TYPES.map((type) => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
                 ))}
               </select>
             </div>

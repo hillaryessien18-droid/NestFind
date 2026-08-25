@@ -19,9 +19,10 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-gray-900">Explore</h3>
             <ul className="mt-3 space-y-2">
               <li><Link to="/properties" className="text-sm text-gray-500 hover:text-primary-600">All Properties</Link></li>
-              <li><Link to="/properties?type=apartment" className="text-sm text-gray-500 hover:text-primary-600">Apartments</Link></li>
+              <li><Link to="/properties?type=self_contain" className="text-sm text-gray-500 hover:text-primary-600">Self-Contains</Link></li>
+              <li><Link to="/properties?type=mini_flat" className="text-sm text-gray-500 hover:text-primary-600">Mini Flats</Link></li>
               <li><Link to="/properties?type=house" className="text-sm text-gray-500 hover:text-primary-600">Houses</Link></li>
-              <li><Link to="/properties?type=condo" className="text-sm text-gray-500 hover:text-primary-600">Condos</Link></li>
+              <li><Link to="/properties?type=apartment" className="text-sm text-gray-500 hover:text-primary-600">Apartments</Link></li>
             </ul>
           </div>
           <div>

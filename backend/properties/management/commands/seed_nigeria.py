@@ -444,6 +444,311 @@ PROPERTIES = [
     },
 ]
 
+PROPERTIES.extend([
+    {
+        "title": "Self-Contain Apartment, Gwarinpa, Abuja",
+        "description": (
+            "Clean self-contain apartment in a secure Gwarinpa compound with tiled floor, "
+            "private bathroom, kitchenette, prepaid meter and steady borehole water. "
+            "Best suited for a single professional or student who needs easy access to "
+            "Jabi, Wuse and the Kubwa express corridor."
+        ),
+        "property_type": "self_contain",
+        "price": 450000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 380,
+        "address": "3rd Avenue, Gwarinpa Estate, Abuja",
+        "city": "Gwarinpa",
+        "state": "FCT Abuja",
+        "latitude": 9.1093,
+        "longitude": 7.4042,
+        "is_furnished": False,
+        "max_guests": 1,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+        "photo_ids": [
+            "1545324418-cc1a3fa10c00",
+            "1560448204-e02f11c3d0e2",
+            "1522708323590-d24dbb6b0267",
+        ],
+    },
+    {
+        "title": "2-Bedroom Flat, Wuse 2, Abuja",
+        "description": (
+            "Standard 2-bedroom flat in Wuse 2 with spacious sitting room, fitted kitchen, "
+            "two bathrooms, parking and 24-hour security. The location is close to offices, "
+            "restaurants and major Abuja transport routes."
+        ),
+        "property_type": "flat",
+        "price": 1800000,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "area_sqft": 1250,
+        "address": "Aminu Kano Crescent, Wuse 2, Abuja",
+        "city": "Wuse 2",
+        "state": "FCT Abuja",
+        "latitude": 9.0765,
+        "longitude": 7.4838,
+        "is_furnished": True,
+        "max_guests": 4,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "3-Bedroom Terrace House, Guzape, Abuja",
+        "description": (
+            "Modern 3-bedroom terrace house in Guzape with all rooms en-suite, guest toilet, "
+            "family lounge, fitted kitchen, BQ, paved parking and estate security. "
+            "A strong fit for families and senior professionals."
+        ),
+        "property_type": "house",
+        "price": 3200000,
+        "bedrooms": 3,
+        "bathrooms": 4,
+        "area_sqft": 2400,
+        "address": "Guzape District, off Shehu Shagari Way, Abuja",
+        "city": "Guzape",
+        "state": "FCT Abuja",
+        "latitude": 9.0305,
+        "longitude": 7.5157,
+        "is_furnished": False,
+        "max_guests": 5,
+        "minimum_lease_months": 12,
+        "exterior_pool": HOUSE_EXTERIORS,
+    },
+    {
+        "title": "Mini Flat, Trans Amadi, Port Harcourt",
+        "description": (
+            "Neat mini flat in Trans Amadi with a separate bedroom, sitting room, kitchen, "
+            "bathroom, prepaid meter and reliable water supply. Convenient for tenants "
+            "working around the industrial layout and GRA axis."
+        ),
+        "property_type": "mini_flat",
+        "price": 650000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 620,
+        "address": "Peter Odili Road, Trans Amadi, Port Harcourt",
+        "city": "Port Harcourt",
+        "state": "Rivers",
+        "latitude": 4.8156,
+        "longitude": 7.0498,
+        "is_furnished": False,
+        "max_guests": 2,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+        "photo_ids": [
+            "1556784344-ad913c73cfc4",
+            "1560448204-e02f11c3d0e2",
+            "1522708323590-d24dbb6b0267",
+        ],
+    },
+    {
+        "title": "3-Bedroom Flat, Old GRA, Port Harcourt",
+        "description": (
+            "Spacious 3-bedroom flat in Old GRA with large rooms, fitted kitchen, balcony, "
+            "compound parking and security. The address suits families who want a central "
+            "Port Harcourt location near schools, offices and recreation."
+        ),
+        "property_type": "flat",
+        "price": 1500000,
+        "bedrooms": 3,
+        "bathrooms": 3,
+        "area_sqft": 1600,
+        "address": "Tombia Street, Old GRA, Port Harcourt",
+        "city": "Port Harcourt",
+        "state": "Rivers",
+        "latitude": 4.7898,
+        "longitude": 7.0085,
+        "is_furnished": False,
+        "max_guests": 5,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "Self-Contain Apartment, Uyo Town",
+        "description": (
+            "Affordable self-contain apartment in Uyo with ensuite bathroom, kitchenette, "
+            "tiled floor, water supply and fenced compound. A practical rental for NYSC "
+            "members, students and entry-level professionals."
+        ),
+        "property_type": "self_contain",
+        "price": 280000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 340,
+        "address": "Abak Road, Uyo, Akwa Ibom",
+        "city": "Uyo",
+        "state": "Akwa Ibom",
+        "latitude": 5.0377,
+        "longitude": 7.9128,
+        "is_furnished": False,
+        "max_guests": 1,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+        "photo_ids": [
+            "1768760906477-70190a413c6d",
+            "1560448204-e02f11c3d0e2",
+            "1522708323590-d24dbb6b0267",
+        ],
+    },
+    {
+        "title": "2-Bedroom Flat, Ewet Housing Estate, Uyo",
+        "description": (
+            "Well-kept 2-bedroom flat in Ewet Housing Estate with fitted wardrobes, kitchen "
+            "cabinets, two bathrooms, parking and estate security. It is positioned for "
+            "easy access to Uyo city centre and major roads."
+        ),
+        "property_type": "flat",
+        "price": 750000,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "area_sqft": 1100,
+        "address": "Ewet Housing Estate, Uyo, Akwa Ibom",
+        "city": "Uyo",
+        "state": "Akwa Ibom",
+        "latitude": 5.0189,
+        "longitude": 7.9370,
+        "is_furnished": False,
+        "max_guests": 4,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "1-Bedroom Mini Flat, Bodija, Ibadan",
+        "description": (
+            "Comfortable mini flat in Bodija with sitting room, bedroom, kitchen, ensuite "
+            "bathroom, prepaid meter and shared parking. Suitable for young professionals "
+            "working around Secretariat, UI and Dugbe."
+        ),
+        "property_type": "mini_flat",
+        "price": 380000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 580,
+        "address": "Awolowo Avenue, Old Bodija, Ibadan",
+        "city": "Ibadan",
+        "state": "Oyo",
+        "latitude": 7.4295,
+        "longitude": 3.9096,
+        "is_furnished": False,
+        "max_guests": 2,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "3-Bedroom Bungalow, Abeokuta GRA",
+        "description": (
+            "Family-friendly 3-bedroom bungalow in Abeokuta GRA with a spacious compound, "
+            "fitted kitchen, tiled rooms, borehole water and secure parking. A good fit for "
+            "tenants seeking a quieter residential environment."
+        ),
+        "property_type": "house",
+        "price": 900000,
+        "bedrooms": 3,
+        "bathrooms": 2,
+        "area_sqft": 1800,
+        "address": "Ibara GRA, Abeokuta, Ogun",
+        "city": "Abeokuta",
+        "state": "Ogun",
+        "latitude": 7.1500,
+        "longitude": 3.3500,
+        "is_furnished": False,
+        "max_guests": 5,
+        "minimum_lease_months": 12,
+        "exterior_pool": HOUSE_EXTERIORS,
+    },
+    {
+        "title": "2-Bedroom Flat, Independence Layout, Enugu",
+        "description": (
+            "Freshly finished 2-bedroom flat in Independence Layout with POP ceiling, tiled "
+            "floor, fitted kitchen, water heater and fenced compound. Close to business "
+            "districts, schools and everyday amenities."
+        ),
+        "property_type": "flat",
+        "price": 700000,
+        "bedrooms": 2,
+        "bathrooms": 2,
+        "area_sqft": 1050,
+        "address": "Independence Layout, Enugu",
+        "city": "Enugu",
+        "state": "Enugu",
+        "latitude": 6.4368,
+        "longitude": 7.5085,
+        "is_furnished": False,
+        "max_guests": 4,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "Self-Contain Apartment, Zoo Road, Kano",
+        "description": (
+            "Budget-friendly self-contain apartment around Zoo Road with private bathroom, "
+            "mini kitchen, prepaid meter and water supply. It is categorized for tenants "
+            "who need a compact single-room rental in a central Kano neighbourhood."
+        ),
+        "property_type": "self_contain",
+        "price": 250000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 320,
+        "address": "Zoo Road, Kano",
+        "city": "Kano",
+        "state": "Kano",
+        "latitude": 12.0022,
+        "longitude": 8.5919,
+        "is_furnished": False,
+        "max_guests": 1,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "3-Bedroom Flat, Asaba GRA",
+        "description": (
+            "Standard 3-bedroom flat in Asaba GRA with ensuite master bedroom, fitted "
+            "kitchen, tiled floor, parking and water supply. Good for families and civil "
+            "servants who want quick access to central Asaba."
+        ),
+        "property_type": "flat",
+        "price": 850000,
+        "bedrooms": 3,
+        "bathrooms": 3,
+        "area_sqft": 1500,
+        "address": "Nnebisi Road, Asaba GRA, Delta",
+        "city": "Asaba",
+        "state": "Delta",
+        "latitude": 6.2006,
+        "longitude": 6.7338,
+        "is_furnished": False,
+        "max_guests": 5,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "Mini Flat, Awka Capital Territory",
+        "description": (
+            "Newly painted mini flat in Awka with separate bedroom and parlour, kitchen, "
+            "ensuite bathroom, prepaid meter and fenced compound. A suitable rental for "
+            "workers and students around the state capital."
+        ),
+        "property_type": "mini_flat",
+        "price": 420000,
+        "bedrooms": 1,
+        "bathrooms": 1,
+        "area_sqft": 600,
+        "address": "Zik Avenue, Awka, Anambra",
+        "city": "Awka",
+        "state": "Anambra",
+        "latitude": 6.2101,
+        "longitude": 7.0741,
+        "is_furnished": False,
+        "max_guests": 2,
+        "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+])
+
 REVIEWS = [
     ("The property is exactly as advertised. Clean, secure and the agent was very professional.", 5),
     ("Great location and value for money. Neighbours are quiet and the estate is well run.", 4),

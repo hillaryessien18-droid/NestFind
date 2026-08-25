@@ -6,6 +6,9 @@ const PLACEHOLDER_IMG = 'https://images.unsplash.com/photo-1643297551340-19d8ad4
 
 const TYPE_LABELS = {
   apartment: 'Apartment',
+  self_contain: 'Self-Contain',
+  mini_flat: 'Mini Flat',
+  flat: 'Flat',
   house: 'House',
   condo: 'Condo',
   studio: 'Studio',

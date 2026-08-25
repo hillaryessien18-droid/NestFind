@@ -9,6 +9,19 @@ import { createProperty, getAmenities } from '@/api/properties';
 import { uploadPropertyImages } from '@/api/propertyImages';
 import { Building2 } from 'lucide-react';
 
+const PROPERTY_TYPES = [
+  { value: 'self_contain', label: 'Self-Contain' },
+  { value: 'mini_flat', label: 'Mini Flat' },
+  { value: 'flat', label: 'Flat' },
+  { value: 'apartment', label: 'Apartment' },
+  { value: 'house', label: 'House' },
+  { value: 'condo', label: 'Condo' },
+  { value: 'studio', label: 'Studio' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'townhouse', label: 'Townhouse' },
+  { value: 'room', label: 'Room' },
+];
+
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -89,8 +102,8 @@ export default function CreateProperty() {
                 <label className="block text-sm font-medium text-gray-700">Type</label>
                 <select {...register('property_type')} className={inputClass}>
                   <option value="">Select type</option>
-                  {['apartment', 'house', 'condo', 'studio', 'villa', 'townhouse', 'room'].map((t) => (
-                    <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                  {PROPERTY_TYPES.map((type) => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
                 {errors.property_type && <p className="mt-1 text-xs text-red-500">{errors.property_type.message}</p>}

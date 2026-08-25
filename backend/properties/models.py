@@ -20,6 +20,9 @@ class Property(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     PROPERTY_TYPE_CHOICES = [
         ("apartment", "Apartment"),
+        ("self_contain", "Self-Contain"),
+        ("mini_flat", "Mini Flat"),
+        ("flat", "Flat"),
         ("house", "House"),
         ("condo", "Condo"),
         ("studio", "Studio"),
