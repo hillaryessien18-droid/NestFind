@@ -27,11 +27,12 @@ export default function PaymentSuccess() {
 
   const isSuccessful = result?.status === 'successful';
   const bookingId = result?.booking_id;
+  const isRental = result?.booking_type === 'rent';
 
   const detailsQuery = useQuery({
     queryKey: ['tenant-details', bookingId],
     queryFn: () => getTenantDetails(bookingId),
-    enabled: isSuccessful && !!bookingId,
+    enabled: isSuccessful && isRental && !!bookingId,
     retry: false,
   });
   const hasDetails = !!detailsQuery.data;
@@ -103,9 +104,11 @@ export default function PaymentSuccess() {
             </p>
           </div>
 
-          <div className="mt-8">
-            <TenantDetailsForm bookingId={bookingId} onDone={() => detailsQuery.refetch()} />
-          </div>
+          {isRental && !hasDetails && (
+            <div className="mt-8">
+              <TenantDetailsForm bookingId={bookingId} onDone={() => detailsQuery.refetch()} />
+            </div>
+          )}
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -114,14 +117,12 @@ export default function PaymentSuccess() {
             >
               <ReceiptText className="h-4 w-4" /> View Receipt
             </Link>
-            {hasDetails && (
-              <Link
-                to="/bookings"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-              >
-                View My Bookings <ArrowRight className="h-4 w-4" />
-              </Link>
-            )}
+            <Link
+              to="/bookings"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
+            >
+              View My Bookings <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </>
       ) : (

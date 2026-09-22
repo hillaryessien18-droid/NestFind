@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -19,7 +19,8 @@ export default function Payment() {
     queryFn: () => getProperty(id),
   });
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm({
+    shouldUnregister: true,
     defaultValues: {
       booking_type: 'rent',
       months: 12,
@@ -30,6 +31,14 @@ export default function Payment() {
       phone: user?.phone || '',
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    if (!getValues('full_name')) {
+      setValue('full_name', `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || '');
+    }
+    if (!getValues('phone') && user.phone) setValue('phone', user.phone);
+  }, [user, getValues, setValue]);
 
   const watchedMonths = watch('months') || 12;
   const watchedStartDate = watch('start_date');
@@ -58,31 +67,18 @@ export default function Payment() {
       }
     },
     onError: (err) => {
-      console.error('Payment error:', err.response?.status, err.response?.data);
-      const data = err.response?.data;
-      let msg = 'Failed to initialize payment';
-      if (data) {
-        if (typeof data === 'string') msg = data;
-        else if (data.error) msg = data.error;
-        else if (data.details) msg = data.details;
-        else if (data.detail) msg = data.detail;
-        else {
-          const firstKey = Object.keys(data)[0];
-          if (firstKey && Array.isArray(data[firstKey])) {
-            msg = `${firstKey}: ${data[firstKey][0]}`;
-          }
-        }
-      }
-      toast.error(msg);
+      toast.error(err.response?.status === 503
+        ? 'Payments are temporarily unavailable. Please try again later.'
+        : 'We could not start your payment. Please check your details and try again.');
     },
   });
 
   const onSubmit = (data) => {
     paymentMutation.mutate({
       property_id: id,
-      booking_type: data.booking_type,
-      months: data.booking_type === 'rent' ? Number(data.months) : undefined,
-      start_date: data.start_date,
+      booking_type: paymentType,
+      months: paymentType === 'rent' ? Number(data.months) : undefined,
+      start_date: paymentType === 'rent' ? data.start_date : undefined,
       full_name: data.full_name,
       phone: data.phone,
     });
@@ -210,22 +206,24 @@ export default function Payment() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">Move-in Date</h2>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  <Calendar className="mr-1 inline h-4 w-4" />
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  {...register('start_date', { required: 'Start date is required' })}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                />
-                {errors.start_date && <p className="mt-1 text-xs text-red-500">{errors.start_date.message}</p>}
+            {paymentType === 'rent' && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="mb-4 text-lg font-semibold text-gray-900">Move-in Date</h2>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <Calendar className="mr-1 inline h-4 w-4" />
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    {...register('start_date', { required: 'Start date is required' })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  />
+                  {errors.start_date && <p className="mt-1 text-xs text-red-500">{errors.start_date.message}</p>}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
               <h2 className="mb-4 text-lg font-semibold text-gray-900">Your Details</h2>
@@ -305,8 +303,8 @@ export default function Payment() {
                     <span className="font-medium capitalize">{paymentType}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Monthly Price</span>
-                    <span className="font-medium">{formatPrice(property.price)}</span>
+                    <span className="text-gray-500">{paymentType === 'rent' ? 'Monthly Price' : 'Listed Price'}</span>
+                    <span className="font-medium">{formatPrice(property.price, paymentType === 'rent')}</span>
                   </div>
                   {paymentType === 'rent' && (
                     <div className="flex justify-between">

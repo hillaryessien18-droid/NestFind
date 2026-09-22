@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,6 +44,8 @@ function registrationErrorMessage(err) {
 export default function Register() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.from;
   const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -55,7 +57,7 @@ export default function Register() {
     try {
       await registerUser(data);
       toast.success('Account created successfully!');
-      navigate('/');
+      navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/', { replace: true });
     } catch (err) {
       toast.error(registrationErrorMessage(err));
     }
@@ -169,7 +171,7 @@ export default function Register() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
+          <Link to="/login" state={location.state} className="font-semibold text-primary-600 hover:text-primary-700">
             Sign in
           </Link>
         </p>

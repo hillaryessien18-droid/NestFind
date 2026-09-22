@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
+from decimal import Decimal, InvalidOperation
 import logging
 
 from properties.models import Property
@@ -21,6 +22,20 @@ from .serializers import (
 from .services import initialize_payment, verify_payment, generate_tx_ref
 
 logger = logging.getLogger(__name__)
+
+
+def payment_details_match(data, transaction):
+    """Only confirm a charge that matches the stored transaction."""
+    try:
+        paid_amount = Decimal(str(data.get("amount")))
+    except (InvalidOperation, TypeError):
+        return False
+    return (
+        str(data.get("status", "")).lower() == "successful"
+        and data.get("tx_ref") == transaction.tx_ref
+        and data.get("currency") == transaction.currency
+        and paid_amount >= transaction.amount
+    )
 
 
 def send_welcome_email(user, booking):
@@ -124,6 +139,8 @@ def send_host_notification(host, booking, payer_name):
 
 def confirm_payment(booking):
     """Confirm a booking and send welcome messages."""
+    if booking.status == "confirmed":
+        return
     booking.status = "confirmed"
     booking.save(update_fields=["status"])
 
@@ -149,11 +166,8 @@ class PaymentInitializeView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        logger.warning(f"Content-Type: {request.content_type}")
-        logger.warning(f"Request data: {request.data}")
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
-            logger.warning(f"Serializer errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         prop = generics.get_object_or_404(Property, pk=serializer.validated_data["property_id"])
@@ -166,14 +180,21 @@ class PaymentInitializeView(generics.CreateAPIView):
 
         booking_type = serializer.validated_data["booking_type"]
         months = serializer.validated_data.get("months")
-        start_date = serializer.validated_data.get("start_date", timezone.now().date())
+        start_date = serializer.validated_data.get("start_date") if booking_type == "rent" else None
 
         if booking_type == "rent":
             if not months:
                 months = prop.minimum_lease_months
+            if months < prop.minimum_lease_months:
+                return Response(
+                    {"months": [f"Minimum lease is {prop.minimum_lease_months} months."]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            start_date = start_date or timezone.localdate()
             end_date = start_date + timedelta(days=months * 30)
             amount = prop.price * months
         else:
+            start_date = timezone.localdate()
             months = None
             end_date = None
             amount = prop.price
@@ -203,9 +224,8 @@ class PaymentInitializeView(generics.CreateAPIView):
             meta={"booking_id": str(booking.id)},
         )
 
-        logger.info(f"Flutterwave response: {payment_data}")
-
-        if payment_data.get("status") == "success":
+        checkout_url = payment_data.get("data", {}).get("link") if isinstance(payment_data.get("data"), dict) else None
+        if payment_data.get("status") == "success" and checkout_url:
             transaction = PaymentTransaction.objects.create(
                 booking=booking,
                 tx_ref=tx_ref,
@@ -215,7 +235,6 @@ class PaymentInitializeView(generics.CreateAPIView):
                 status="pending",
             )
 
-            checkout_url = payment_data.get("data", {}).get("link")
             return Response({
                 "booking_id": str(booking.id),
                 "tx_ref": tx_ref,
@@ -225,15 +244,10 @@ class PaymentInitializeView(generics.CreateAPIView):
             })
         else:
             booking.delete()
-            flw_message = payment_data.get("message", "Unknown error")
-            flw_code = payment_data.get("code", "")
+            logger.error("Flutterwave payment initialization failed: %s", payment_data.get("message", "Unknown error"))
             return Response(
-                {
-                    "error": f"Payment initialization failed: {flw_message}",
-                    "details": flw_message,
-                    "code": flw_code,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Payments are temporarily unavailable. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
 
@@ -241,22 +255,25 @@ class PaymentVerifyView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, tx_ref):
-        transaction = generics.get_object_or_404(PaymentTransaction, tx_ref=tx_ref)
+        transaction = generics.get_object_or_404(
+            PaymentTransaction, tx_ref=tx_ref, booking__user=request.user
+        )
 
         if transaction.verified and transaction.status == "successful":
             return Response({
                 "status": "successful",
                 "message": "Payment already verified.",
                 "booking_id": str(transaction.booking.id),
+                "booking_type": transaction.booking.booking_type,
             })
 
         verification = verify_payment(tx_ref)
 
         if verification.get("status") == "success":
             data = verification.get("data", {})
-            flw_status = data.get("status", "").lower()
+            flw_status = str(data.get("status", "")).lower()
 
-            if flw_status == "successful":
+            if flw_status == "successful" and payment_details_match(data, transaction):
                 transaction.status = "successful"
                 transaction.flw_ref = data.get("flw_ref", "")
                 transaction.payment_method = data.get("payment_type", "")
@@ -269,18 +286,28 @@ class PaymentVerifyView(generics.GenericAPIView):
                     "status": "successful",
                     "message": "Payment verified successfully.",
                     "booking_id": str(transaction.booking.id),
+                    "booking_type": transaction.booking.booking_type,
                 })
+            elif flw_status == "successful":
+                logger.error("Flutterwave verification details did not match transaction %s", tx_ref)
+                return Response(
+                    {"error": "Could not confirm this payment. Please contact support."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             else:
-                transaction.status = "failed"
-                transaction.save(update_fields=["status"])
+                if flw_status == "failed":
+                    transaction.status = "failed"
+                    transaction.save(update_fields=["status"])
                 return Response({
-                    "status": "failed",
-                    "message": "Payment was not successful.",
+                    "status": "failed" if flw_status == "failed" else "pending",
+                    "message": "Payment was not successful." if flw_status == "failed" else "Payment is still pending.",
+                    "booking_id": str(transaction.booking.id),
+                    "booking_type": transaction.booking.booking_type,
                 })
         else:
             return Response(
-                {"error": "Could not verify payment.", "details": verification.get("message", "")},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"error": "Could not verify your payment right now. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
 
@@ -294,19 +321,24 @@ class PaymentWebhookView(generics.GenericAPIView):
         data = payload.get("data", {})
 
         if event == "charge.completed":
-            flw_status = data.get("status", "").lower()
+            flw_status = str(data.get("status", "")).lower()
             tx_ref = data.get("tx_ref", "")
 
             if flw_status == "successful" and tx_ref:
                 try:
                     transaction = PaymentTransaction.objects.get(tx_ref=tx_ref)
                     if not transaction.verified:
-                        transaction.status = "successful"
-                        transaction.flw_ref = data.get("flw_ref", "")
-                        transaction.payment_method = data.get("payment_type", "")
-                        transaction.verified = True
-                        transaction.save(update_fields=["status", "flw_ref", "payment_method", "verified"])
-                        confirm_payment(transaction.booking)
+                        verification = verify_payment(tx_ref)
+                        verified_data = verification.get("data", {})
+                        if verification.get("status") == "success" and payment_details_match(verified_data, transaction):
+                            transaction.status = "successful"
+                            transaction.flw_ref = verified_data.get("flw_ref", "")
+                            transaction.payment_method = verified_data.get("payment_type", "")
+                            transaction.verified = True
+                            transaction.save(update_fields=["status", "flw_ref", "payment_method", "verified"])
+                            confirm_payment(transaction.booking)
+                        else:
+                            logger.warning("Webhook charge could not be verified for %s", tx_ref)
                 except PaymentTransaction.DoesNotExist:
                     logger.warning(f"Webhook received for unknown tx_ref: {tx_ref}")
 

@@ -13,6 +13,7 @@ from .serializers import (
     PropertyCreateUpdateSerializer,
     PropertyImageSerializer,
     ReviewSerializer,
+    ReviewHighlightSerializer,
     SavedPropertySerializer,
     EnquirySerializer,
 )
@@ -117,6 +118,33 @@ class PropertyViewSet(viewsets.ModelViewSet):
         properties = self.get_queryset().filter(status="active").order_by("-views_count")[:6]
         serializer = PropertyListSerializer(properties, many=True, context=self.get_serializer_context())
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny])
+    def locations(self, request):
+        cities = (
+            Property.objects.filter(status="active")
+            .exclude(city="")
+            .order_by("city")
+            .values_list("city", flat=True)
+            .distinct()
+        )
+        return Response(list(cities))
+
+    @action(detail=False, methods=["get"], permission_classes=[permissions.AllowAny], url_path="community-reviews")
+    def community_reviews(self, request):
+        demo_users = [
+            "adaeze@nestfind.com", "tunde@nestfind.com",
+            "ngozi@nestfind.com", "emeka@nestfind.com",
+        ]
+        reviews = (
+            Review.objects.select_related("user", "property")
+            .filter(property__status="active")
+            .exclude(user__email__in=demo_users)
+            .exclude(property__user__email="lagoshost@nestfind.com")
+            .exclude(comment="")
+            .order_by("-created_at")[:3]
+        )
+        return Response(ReviewHighlightSerializer(reviews, many=True).data)
 
     @action(detail=True, methods=["get"], permission_classes=[permissions.AllowAny])
     def similar(self, request, pk=None):

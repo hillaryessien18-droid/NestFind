@@ -814,6 +814,7 @@ PROPERTIES.extend([
         "city": "Uyo", "state": "Akwa Ibom", "latitude": 5.0134, "longitude": 7.9653,
         "is_furnished": False, "max_guests": 5, "minimum_lease_months": 12,
         "exterior_pool": HOUSE_EXTERIORS,
+        "local_primary_photo": "uyo-shelter-afrique-bungalow.jpg",
     },
     {
         "title": "2-Bedroom Apartment, GRA, Benin City",
@@ -940,6 +941,7 @@ class Command(BaseCommand):
             data = dict(data)
             exterior_pool = data.pop("exterior_pool")
             photo_ids = data.pop("photo_ids", None)
+            local_primary_photo = data.pop("local_primary_photo", None)
             title = data.pop("title")
             prop, _ = Property.objects.update_or_create(
                 user=host,
@@ -962,9 +964,13 @@ class Command(BaseCommand):
             )
 
             remote_photos = photo_ids or pick_images(index, exterior_pool, count=3)
-            primary_image = download_image(
-                remote_photos[0], f"nigeria_{index + 1}_1"
-            )
+            if local_primary_photo:
+                path = SEED_ASSET_DIR / local_primary_photo
+                primary_image = ContentFile(path.read_bytes(), name=local_primary_photo)
+            else:
+                primary_image = download_image(
+                    remote_photos[0], f"nigeria_{index + 1}_1"
+                )
             if primary_image is None:
                 failed_images += 1
                 primary_image = category_photo(data)
@@ -975,8 +981,8 @@ class Command(BaseCommand):
             PropertyImage.objects.create(
                 property=prop,
                 image=primary_image,
-                external_url=unsplash_url(remote_photos[0]),
-                caption=f"{prop.title} - exterior",
+                external_url="" if local_primary_photo else unsplash_url(remote_photos[0]),
+                caption="Illustrative photo of a single-storey bungalow" if local_primary_photo else f"{prop.title} - exterior",
                 is_primary=True,
                 order=0,
             )

@@ -9,6 +9,12 @@ export const getProperty = (id) =>
 export const getFeaturedProperties = () =>
   apiClient.get('/properties/featured/').then((response) => response.data);
 
+export const getPropertyLocations = () =>
+  apiClient.get('/properties/locations/').then((response) => response.data);
+
+export const getCommunityReviews = () =>
+  apiClient.get('/properties/community-reviews/').then((response) => response.data);
+
 export const getSimilarProperties = (id) =>
   apiClient.get(`/properties/${id}/similar/`).then((response) => response.data);
 

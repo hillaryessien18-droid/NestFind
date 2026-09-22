@@ -304,6 +304,35 @@ class ReviewAPITests(TestCase):
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_community_reviews_excludes_demo_accounts_and_properties(self):
+        Review.objects.create(
+            property=self.property, user=self.tenant, rating=5,
+            comment="The listing matched what I saw in person.",
+        )
+        demo_tenant = create_user("adaeze@nestfind.com", "tenant")
+        Review.objects.create(
+            property=self.property, user=demo_tenant, rating=5,
+            comment="Seeded sample review.",
+        )
+        demo_host = create_user("lagoshost@nestfind.com", "host")
+        demo_property = Property.objects.create(
+            user=demo_host, title="Demo home", description="Sample listing",
+            property_type="house", status="active", price=1000, bedrooms=3,
+            bathrooms=2, area_sqft=1000, address="Demo Street", city="Uyo",
+            state="Akwa Ibom", country="Nigeria",
+        )
+        Review.objects.create(
+            property=demo_property, user=create_user("another@example.com", "tenant"),
+            rating=4, comment="Review of a demo listing.",
+        )
+
+        response = self.client.get("/api/properties/community-reviews/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["comment"], "The listing matched what I saw in person.")
+        self.assertNotIn("user_email", response.data[0])
+
 
 class SavedPropertyAPITests(TestCase):
     def setUp(self):

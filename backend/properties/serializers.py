@@ -43,6 +43,7 @@ class PropertyImageSerializer(serializers.ModelSerializer):
 
 class PropertyListSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
+    primary_image_caption = serializers.SerializerMethodField()
     average_rating = serializers.ReadOnlyField()
     review_count = serializers.ReadOnlyField()
     user_name = serializers.CharField(source="user.full_name", read_only=True)
@@ -51,12 +52,16 @@ class PropertyListSerializer(serializers.ModelSerializer):
         image = obj.images.filter(is_primary=True).first() or obj.images.first()
         return property_image_url(self.context.get("request"), image)
 
+    def get_primary_image_caption(self, obj):
+        image = obj.images.filter(is_primary=True).first() or obj.images.first()
+        return image.caption if image else ""
+
     class Meta:
         model = Property
         fields = [
             "id", "title", "property_type", "status", "price",
             "bedrooms", "bathrooms", "area_sqft", "city", "state",
-            "country", "primary_image", "average_rating", "review_count",
+            "country", "primary_image", "primary_image_caption", "average_rating", "review_count",
             "user_name", "views_count", "created_at",
         ]
 
@@ -150,6 +155,15 @@ class ReviewSerializer(serializers.ModelSerializer):
                 )
 
         return attrs
+
+
+class ReviewHighlightSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.full_name", read_only=True)
+    property_title = serializers.CharField(source="property.title", read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ["id", "property", "property_title", "user_name", "rating", "comment", "created_at"]
 
 
 class SavedPropertySerializer(serializers.ModelSerializer):

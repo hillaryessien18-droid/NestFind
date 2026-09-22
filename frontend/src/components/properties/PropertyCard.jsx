@@ -50,6 +50,11 @@ export default function PropertyCard({ property, isSaved = false, onToggleSave }
               <Tag className="h-3 w-3" /> {statusBadge.label}
             </span>
           )}
+          {property.primary_image_caption?.startsWith('Illustrative') && (
+            <span className="rounded bg-[#fffdf8] px-2 py-0.5 text-[11px] font-semibold text-[#5b625b] shadow-sm">
+              Illustrative photo
+            </span>
+          )}
         </div>
         {onToggleSave && (
           <button

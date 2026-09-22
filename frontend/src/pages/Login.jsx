@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +15,8 @@ const schema = z.object({
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = location.state?.from;
   const [showPassword, setShowPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -25,7 +27,7 @@ export default function Login() {
     try {
       await login(data.email, data.password);
       toast.success('Welcome back!');
-      navigate('/');
+      navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/', { replace: true });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed');
     }
@@ -87,7 +89,7 @@ export default function Login() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Don't have an account?{' '}
-          <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
+          <Link to="/register" state={location.state} className="font-semibold text-primary-600 hover:text-primary-700">
             Sign up
           </Link>
         </p>

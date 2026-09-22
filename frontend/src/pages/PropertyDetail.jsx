@@ -128,6 +128,11 @@ export default function PropertyDetail() {
                 ))}
               </div>
             </div>
+            {property.images?.[currentImage]?.caption?.startsWith('Illustrative') && (
+              <span className="absolute bottom-3 left-3 rounded bg-[#fffdf8] px-2 py-1 text-xs font-semibold text-[#5b625b] shadow-sm">
+                Illustrative photo
+              </span>
+            )}
             {images.length > 1 && (
               <>
                 <button

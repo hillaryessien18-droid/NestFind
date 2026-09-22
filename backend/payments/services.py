@@ -1,15 +1,10 @@
 import os
 import hashlib
 import requests
-from pathlib import Path
-from dotenv import load_dotenv
-
-_backend_dir = Path(__file__).resolve().parent.parent
-load_dotenv(_backend_dir / ".env", override=True)
 
 
 def _get_secret_key():
-    return os.getenv("FLW_SECRET_KEY", "")
+    return os.getenv("FLW_SECRET_KEY", "").strip()
 
 
 def _get_base_url():
@@ -23,6 +18,9 @@ def initialize_payment(tx_ref, amount, email, name, phone=None, redirect_url=Non
     """
     secret_key = _get_secret_key()
     base_url = _get_base_url()
+
+    if not secret_key:
+        return {"status": "error", "message": "Flutterwave secret key is not configured."}
 
     headers = {
         "Authorization": f"Bearer {secret_key}",
@@ -60,10 +58,9 @@ def initialize_payment(tx_ref, amount, email, name, phone=None, redirect_url=Non
             headers=headers,
             timeout=30,
         )
-        data = response.json()
-        return data
-    except requests.RequestException as e:
-        return {"status": "error", "message": str(e)}
+        return response.json()
+    except (requests.RequestException, ValueError):
+        return {"status": "error", "message": "Flutterwave is temporarily unavailable."}
 
 
 def verify_payment(tx_ref):
@@ -73,6 +70,9 @@ def verify_payment(tx_ref):
     """
     secret_key = _get_secret_key()
     base_url = _get_base_url()
+
+    if not secret_key:
+        return {"status": "error", "message": "Flutterwave secret key is not configured."}
 
     headers = {
         "Authorization": f"Bearer {secret_key}",
@@ -86,10 +86,9 @@ def verify_payment(tx_ref):
             headers=headers,
             timeout=30,
         )
-        data = response.json()
-        return data
-    except requests.RequestException as e:
-        return {"status": "error", "message": str(e)}
+        return response.json()
+    except (requests.RequestException, ValueError):
+        return {"status": "error", "message": "Flutterwave is temporarily unavailable."}
 
 
 def verify_webhook_signature(payload_body, signature_header, secret_hash=None):

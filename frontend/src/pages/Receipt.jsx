@@ -48,7 +48,7 @@ export default function Receipt() {
     ['Payer', `${receipt.payer_name} (${receipt.payer_email})`],
     ['Property', receipt.property_title],
     ['Location', receipt.property_address],
-    [`${receipt.booking_type} Period`, `${new Date(receipt.period_start).toLocaleDateString()}${receipt.period_end ? ` - ${new Date(receipt.period_end).toLocaleDateString()}` : ''}`],
+    [receipt.booking_type === 'Purchase' ? 'Purchase Date' : 'Rental Period', `${new Date(receipt.period_start).toLocaleDateString()}${receipt.period_end ? ` - ${new Date(receipt.period_end).toLocaleDateString()}` : ''}`],
     ...(receipt.months ? [['Duration', `${receipt.months} month(s)`]] : []),
     ['Host', receipt.host_name],
     ['Date Paid', new Date(receipt.paid_at).toLocaleString()],
@@ -72,7 +72,7 @@ export default function Receipt() {
         <div className="flex items-start justify-between bg-primary-600 p-6 text-white print:bg-white print:text-gray-900">
           <div>
             <p className="text-2xl font-bold">NestFind</p>
-            <p className="mt-1 text-sm opacity-90">Rent Payment Receipt</p>
+            <p className="mt-1 text-sm opacity-90">{receipt.booking_type} Payment Receipt</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
             receipt.status === 'Successful'
