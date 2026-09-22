@@ -6,7 +6,7 @@ import { getUnreadNotificationCount } from '@/api/payments';
 import { Home, Search, Heart, LayoutDashboard, LogOut, Menu, X, PlusCircle, MessageSquare, User, Building2, Bell, CreditCard, History } from 'lucide-react';
 
 const navLinkClass = ({ isActive }) =>
-  `flex items-center gap-1.5 text-sm font-medium transition-colors ${
+  `flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium transition-colors ${
     isActive ? 'text-primary-600' : 'text-gray-600 hover:text-primary-600'
   }`;
 
@@ -32,12 +32,12 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/nestfind-logo.svg" alt="" className="h-8 w-8" />
+        <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="NestFind home">
+          <img src="/nestfind-logo.svg" alt="" className="h-8 w-8 shrink-0" />
           <span className="text-xl font-bold text-gray-900">NestFind</span>
         </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-5 xl:flex">
           <NavLink to="/" className={navLinkClass} end>
             <Home className="h-4 w-4" /> Home
           </NavLink>
@@ -82,7 +82,7 @@ export default function Navbar() {
           )}
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden shrink-0 items-center gap-3 xl:flex">
           {isAuthenticated ? (
             <>
               {isHost && (
@@ -120,14 +120,16 @@ export default function Navbar() {
 
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="rounded-md p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+          className="shrink-0 rounded-md p-2 text-gray-600 hover:bg-gray-100 xl:hidden"
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </nav>
 
       {mobileOpen && (
-        <div className="border-t border-gray-100 bg-white px-4 pb-4 md:hidden">
+        <div className="border-t border-gray-100 bg-white px-4 pb-4 xl:hidden">
           <div className="flex flex-col gap-2 pt-3">
             <NavLink to="/" className={navLinkClass} onClick={() => setMobileOpen(false)} end>
               <Home className="h-4 w-4" /> Home
