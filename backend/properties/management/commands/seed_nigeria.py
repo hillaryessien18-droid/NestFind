@@ -961,17 +961,27 @@ class Command(BaseCommand):
                 or amenities[:7]
             )
 
+            remote_photos = photo_ids or pick_images(index, exterior_pool, count=3)
+            primary_image = download_image(
+                remote_photos[0], f"nigeria_{index + 1}_1"
+            )
+            if primary_image is None:
+                failed_images += 1
+                primary_image = category_photo(data)
+                remaining_photos = remote_photos[:3]
+            else:
+                remaining_photos = remote_photos[1:3]
+
             PropertyImage.objects.create(
                 property=prop,
-                image=category_photo(data),
-                caption=f"{prop.title} - primary photo",
+                image=primary_image,
+                caption=f"{prop.title} - exterior",
                 is_primary=True,
                 order=0,
             )
             image_count += 1
 
-            remote_photos = photo_ids or pick_images(index, exterior_pool, count=3)
-            for img_index, photo_id in enumerate(remote_photos[:3], start=1):
+            for img_index, photo_id in enumerate(remaining_photos, start=1):
                 image_file = download_image(
                     photo_id, f"nigeria_{index + 1}_{img_index + 1}"
                 )
