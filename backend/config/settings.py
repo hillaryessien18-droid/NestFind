@@ -12,7 +12,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
 DEBUG = os.getenv("DEBUG", "True").lower() == "true"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+
+def _allowed_host(value):
+    """Normalize a hostname or URL copied from a hosting dashboard."""
+    value = value.strip()
+    if not value:
+        return None
+    if "://" in value:
+        return urlparse(value).hostname
+    return value.rstrip("/")
+
+
+_configured_hosts = os.getenv("ALLOWED_HOSTS", "").split(",")
+_render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
+ALLOWED_HOSTS = list(dict.fromkeys(filter(None, (
+    "localhost",
+    "127.0.0.1",
+    "nestfind-backend-ie6m.onrender.com",
+    _allowed_host(_render_hostname),
+    *(_allowed_host(host) for host in _configured_hosts),
+))))
 
 INSTALLED_APPS = [
     "django.contrib.admin",

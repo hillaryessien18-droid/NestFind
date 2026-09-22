@@ -20,6 +20,27 @@ const schema = z.object({
   path: ['password_confirm'],
 });
 
+function registrationErrorMessage(err) {
+  const errorData = err.response?.data;
+
+  if (errorData && typeof errorData === 'object') {
+    const messages = Object.values(errorData)
+      .flatMap((value) => (Array.isArray(value) ? value : [value]))
+      .filter((value) => typeof value === 'string');
+    if (messages.length) return messages.join(', ');
+  }
+
+  if (typeof errorData === 'string' && !errorData.trimStart().startsWith('<')) {
+    return errorData;
+  }
+
+  if (!err.response) {
+    return 'Unable to reach the server. Please check your connection and try again.';
+  }
+
+  return 'Registration could not be completed. Please try again shortly.';
+}
+
 export default function Register() {
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
@@ -36,13 +57,7 @@ export default function Register() {
       toast.success('Account created successfully!');
       navigate('/');
     } catch (err) {
-      const errorData = err.response?.data;
-      if (errorData) {
-        const msg = Object.values(errorData).flat().join(', ');
-        toast.error(msg || 'Registration failed');
-      } else {
-        toast.error('Registration failed');
-      }
+      toast.error(registrationErrorMessage(err));
     }
   };
 
