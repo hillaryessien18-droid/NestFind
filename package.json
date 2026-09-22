@@ -1,0 +1,12 @@
+{
+  "name": "nestfind",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix frontend ci",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

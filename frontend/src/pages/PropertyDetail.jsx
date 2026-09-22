@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import useEmblaCarousel from 'embla-carousel-react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import { MapPin, BedDouble, Bath, Maximize, Heart, Star, Send, ChevronLeft, ChevronRight, Users, Home, CreditCard } from 'lucide-react';
+import { MapPin, BedDouble, Bath, Maximize, Heart, Star, Send, ChevronLeft, ChevronRight, Users, Home, CreditCard, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createEnquiry } from '@/api/enquiries';
 import { getProperty, getPropertyReviews, getSimilarProperties } from '@/api/properties';
@@ -221,7 +221,20 @@ export default function PropertyDetail() {
 
             {property.latitude && property.longitude && (
               <div className="mt-6">
-                <h2 className="mb-3 text-lg font-semibold text-gray-900">Location</h2>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Location</h2>
+                    <p className="mt-1 text-sm text-gray-500">{property.address}, {property.state}, Nigeria</p>
+                  </div>
+                  <a
+                    href={property.google_maps_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100"
+                  >
+                    Open in Google Maps <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
                 <div className="h-64 overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
                   <MapContainer
                     center={[Number(property.latitude), Number(property.longitude)]}

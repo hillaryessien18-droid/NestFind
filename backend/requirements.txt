@@ -1,13 +1,13 @@
-Django>=5.2,<6.0
-djangorestframework>=3.18
+Django>=6.1.1,<6.2
+djangorestframework>=3.18.1
 djangorestframework-simplejwt>=5.5
 django-filter>=26.1
 drf-spectacular>=0.30
 django-cors-headers>=4.9
-cloudinary>=1.46
+cloudinary>=1.46.2
 django-cloudinary-storage>=0.3
 whitenoise>=6.12
-psycopg2-binary>=2.9.12
+psycopg2-binary>=2.9.13
 gunicorn>=26.2
 Pillow>=12.3
 python-dotenv>=1.2.3

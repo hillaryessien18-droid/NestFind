@@ -133,7 +133,12 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("property", "user")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["property", "user"],
+                name="unique_property_review_per_user",
+            ),
+        ]
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -151,7 +156,12 @@ class SavedProperty(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("user", "property")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "property"],
+                name="unique_saved_property_per_user",
+            ),
+        ]
         ordering = ["-created_at"]
 
     def __str__(self):

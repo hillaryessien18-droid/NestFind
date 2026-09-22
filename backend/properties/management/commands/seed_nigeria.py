@@ -11,6 +11,7 @@ from properties.models import Amenity, Property, PropertyImage, Review
 
 MEDIA_DIR = Path(settings.MEDIA_ROOT) / "properties"
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+SEED_ASSET_DIR = Path(__file__).resolve().parents[2] / "seed_assets"
 
 
 def unsplash_url(photo_id, w=1400):
@@ -77,6 +78,23 @@ def download_image(photo_id, name):
     if len(data) < 5000:
         return None
     return ContentFile(data, name=f"{name}.jpg")
+
+
+def category_photo(property_data):
+    """Return a project-owned primary image matched to the listing category."""
+    if property_data["property_type"] == "self_contain":
+        filename = "self-contain.jpg"
+    elif property_data["property_type"] == "mini_flat":
+        filename = "mini-flat.jpg"
+    elif property_data["bedrooms"] == 1:
+        filename = "one-bedroom.jpg"
+    elif property_data["bedrooms"] == 2:
+        filename = "two-bedroom.jpg"
+    else:
+        filename = "three-bedroom-house.jpg"
+
+    path = SEED_ASSET_DIR / filename
+    return ContentFile(path.read_bytes(), name=filename)
 
 
 AMENITIES = [
@@ -747,6 +765,86 @@ PROPERTIES.extend([
         "minimum_lease_months": 12,
         "exterior_pool": APARTMENT_BUILDINGS,
     },
+    {
+        "title": "Self-Contain for Rent, Akoka, Lagos",
+        "description": "Affordable self-contain close to the Yaba and Akoka education corridor, with a private bathroom, kitchenette, prepaid meter and borehole water.",
+        "property_type": "self_contain", "price": 550000, "bedrooms": 1,
+        "bathrooms": 1, "area_sqft": 360,
+        "address": "University Road, Akoka, Lagos",
+        "city": "Akoka", "state": "Lagos", "latitude": 6.5197, "longitude": 3.3973,
+        "is_furnished": False, "max_guests": 1, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "Mini Flat for Rent, Sangotedo, Lagos",
+        "description": "Newly finished mini flat with a separate bedroom and parlour, fitted kitchen, ensuite bathroom, parking and estate security near the Lekki-Epe corridor.",
+        "property_type": "mini_flat", "price": 800000, "bedrooms": 1,
+        "bathrooms": 1, "area_sqft": 650,
+        "address": "Monastery Road, Sangotedo, Lagos",
+        "city": "Sangotedo", "state": "Lagos", "latitude": 6.4698, "longitude": 3.6351,
+        "is_furnished": False, "max_guests": 2, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "1-Bedroom Apartment, Jabi, Abuja",
+        "description": "Serviced one-bedroom apartment with a bright lounge, fitted kitchen, ensuite bedroom, balcony, security and easy access to Jabi Lake and the city centre.",
+        "property_type": "apartment", "price": 1500000, "bedrooms": 1,
+        "bathrooms": 1, "area_sqft": 720,
+        "address": "Alex Ekwueme Way, Jabi, Abuja",
+        "city": "Jabi", "state": "FCT Abuja", "latitude": 9.0645, "longitude": 7.4235,
+        "is_furnished": True, "max_guests": 2, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "2-Bedroom Flat, Peter Odili Road, Port Harcourt",
+        "description": "Family-friendly two-bedroom flat in a secure compound with ensuite rooms, fitted kitchen, balcony, parking, borehole water and backup power.",
+        "property_type": "flat", "price": 1200000, "bedrooms": 2,
+        "bathrooms": 2, "area_sqft": 1200,
+        "address": "Peter Odili Road, Port Harcourt, Rivers State",
+        "city": "Port Harcourt", "state": "Rivers", "latitude": 4.8021, "longitude": 7.0523,
+        "is_furnished": False, "max_guests": 4, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "3-Bedroom Bungalow, Shelter Afrique, Uyo",
+        "description": "Spacious three-bedroom bungalow with ensuite master bedroom, large kitchen, fenced compound, parking and reliable water in a quiet Uyo neighbourhood.",
+        "property_type": "house", "price": 1100000, "bedrooms": 3,
+        "bathrooms": 3, "area_sqft": 1750,
+        "address": "Shelter Afrique Estate, Uyo, Akwa Ibom",
+        "city": "Uyo", "state": "Akwa Ibom", "latitude": 5.0134, "longitude": 7.9653,
+        "is_furnished": False, "max_guests": 5, "minimum_lease_months": 12,
+        "exterior_pool": HOUSE_EXTERIORS,
+    },
+    {
+        "title": "2-Bedroom Apartment, GRA, Benin City",
+        "description": "Modern two-bedroom apartment with fitted kitchen, tiled floors, ensuite master, parking and gated security in the Benin GRA axis.",
+        "property_type": "apartment", "price": 900000, "bedrooms": 2,
+        "bathrooms": 2, "area_sqft": 1150,
+        "address": "Airport Road, GRA, Benin City, Edo",
+        "city": "Benin City", "state": "Edo", "latitude": 6.3176, "longitude": 5.6037,
+        "is_furnished": False, "max_guests": 4, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
+    {
+        "title": "3-Bedroom House, Barnawa, Kaduna",
+        "description": "Detached three-bedroom family house with a generous lounge, dining area, fenced compound, parking and easy access to central Kaduna.",
+        "property_type": "house", "price": 850000, "bedrooms": 3,
+        "bathrooms": 2, "area_sqft": 1700,
+        "address": "Barnawa Complex Road, Kaduna",
+        "city": "Kaduna", "state": "Kaduna", "latitude": 10.4824, "longitude": 7.4294,
+        "is_furnished": False, "max_guests": 5, "minimum_lease_months": 12,
+        "exterior_pool": HOUSE_EXTERIORS,
+    },
+    {
+        "title": "Mini Flat, Rayfield, Jos",
+        "description": "Neat mini flat with separate bedroom and sitting room, compact kitchen, private bathroom, parking and a calm setting in Rayfield.",
+        "property_type": "mini_flat", "price": 400000, "bedrooms": 1,
+        "bathrooms": 1, "area_sqft": 610,
+        "address": "Rayfield Road, Jos, Plateau",
+        "city": "Jos", "state": "Plateau", "latitude": 9.8586, "longitude": 8.8865,
+        "is_furnished": False, "max_guests": 2, "minimum_lease_months": 12,
+        "exterior_pool": APARTMENT_BUILDINGS,
+    },
 ])
 
 REVIEWS = [
@@ -759,7 +857,7 @@ REVIEWS = [
 
 
 class Command(BaseCommand):
-    help = "Seed the database with Nigerian (Lagos) real estate listings, photos and demo users."
+    help = "Seed the database with nationwide Nigerian rental listings, photos and demo users."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -833,14 +931,6 @@ class Command(BaseCommand):
         existing = Property.objects.filter(user=host)
         if force:
             existing.delete()
-        elif existing.exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Demo host already has {existing.count()} properties. "
-                    "Use --force to rebuild them."
-                )
-            )
-            return
 
         amenities = list(Amenity.objects.all())
         image_count = 0
@@ -849,23 +939,42 @@ class Command(BaseCommand):
         for index, data in enumerate(PROPERTIES):
             data = dict(data)
             exterior_pool = data.pop("exterior_pool")
-            prop = Property.objects.create(
+            photo_ids = data.pop("photo_ids", None)
+            title = data.pop("title")
+            prop, _ = Property.objects.update_or_create(
                 user=host,
-                status="active",
-                country="Nigeria",
-                zip_code="100001",
-                available_from=date.today() + timedelta(days=7),
-                minimum_lease_months=12,
-                views_count=(index + 1) * 137,
-                **data,
+                title=title,
+                defaults={
+                    "status": "active",
+                    "country": "Nigeria",
+                    "zip_code": "",
+                    "available_from": date.today() + timedelta(days=7),
+                    "minimum_lease_months": 12,
+                    "views_count": (index + 1) * 137,
+                    **data,
+                },
             )
+            prop.images.all().delete()
+            prop.reviews.all().delete()
             prop.amenities.set(
                 amenities[index % len(amenities): index % len(amenities) + 7]
                 or amenities[:7]
             )
 
-            for img_index, photo_id in enumerate(pick_images(index, exterior_pool)):
-                image_file = download_image(photo_id, f"lagos_{index + 1}_{img_index + 1}")
+            PropertyImage.objects.create(
+                property=prop,
+                image=category_photo(data),
+                caption=f"{prop.title} - primary photo",
+                is_primary=True,
+                order=0,
+            )
+            image_count += 1
+
+            remote_photos = photo_ids or pick_images(index, exterior_pool, count=3)
+            for img_index, photo_id in enumerate(remote_photos[:3], start=1):
+                image_file = download_image(
+                    photo_id, f"nigeria_{index + 1}_{img_index + 1}"
+                )
                 if image_file is None:
                     failed_images += 1
                     continue
@@ -873,7 +982,7 @@ class Command(BaseCommand):
                     property=prop,
                     image=image_file,
                     caption=f"{prop.title} - photo {img_index + 1}",
-                    is_primary=img_index == 0,
+                    is_primary=False,
                     order=img_index,
                 )
                 image_count += 1

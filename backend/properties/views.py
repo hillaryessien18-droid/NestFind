@@ -1,4 +1,5 @@
 from rest_framework import viewsets, generics, permissions, status, filters
+import django_filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -18,6 +19,32 @@ from .serializers import (
 from .permissions import IsPropertyOwner, IsEnquiryRecipient, IsHost
 
 
+class PropertyFilter(django_filters.FilterSet):
+    city = django_filters.CharFilter(method="filter_location")
+
+    def filter_location(self, queryset, name, value):
+        """Treat city input as a Nigerian location search, including state and address."""
+        return queryset.filter(
+            Q(city__icontains=value)
+            | Q(state__icontains=value)
+            | Q(address__icontains=value)
+        )
+
+    class Meta:
+        model = Property
+        fields = {
+            "property_type": ["exact"],
+            "status": ["exact"],
+            "state": ["exact", "icontains"],
+            "country": ["exact"],
+            "bedrooms": ["exact", "gte", "lte"],
+            "bathrooms": ["exact", "gte", "lte"],
+            "price": ["gte", "lte"],
+            "area_sqft": ["gte", "lte"],
+            "is_furnished": ["exact"],
+        }
+
+
 class AmenityViewSet(viewsets.ModelViewSet):
     queryset = Amenity.objects.all()
     serializer_class = AmenitySerializer
@@ -31,18 +58,7 @@ class PropertyViewSet(viewsets.ModelViewSet):
         "images", "amenities", "reviews"
     )
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = {
-        "property_type": ["exact"],
-        "status": ["exact"],
-        "city": ["exact", "icontains"],
-        "state": ["exact", "icontains"],
-        "country": ["exact"],
-        "bedrooms": ["exact", "gte", "lte"],
-        "bathrooms": ["exact", "gte", "lte"],
-        "price": ["gte", "lte"],
-        "area_sqft": ["gte", "lte"],
-        "is_furnished": ["exact"],
-    }
+    filterset_class = PropertyFilter
     search_fields = ["title", "description", "address", "city", "state"]
     ordering_fields = ["price", "created_at", "views_count", "area_sqft", "bedrooms"]
     ordering = ["-created_at"]

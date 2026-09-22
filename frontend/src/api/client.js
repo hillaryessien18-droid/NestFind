@@ -1,9 +1,13 @@
 import axios from 'axios';
 
+const PRODUCTION_API_URL = 'https://nestfind-backend-ie6m.onrender.com/api';
+const configuredApiURL = import.meta.env.PROD
+  ? import.meta.env.VITE_API_BASE_URL_PROD || import.meta.env.VITE_API_BASE_URL
+  : import.meta.env.VITE_API_BASE_URL;
+const apiBaseURL = configuredApiURL || (import.meta.env.PROD ? PRODUCTION_API_URL : '/api');
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.PROD
-    ? import.meta.env.VITE_API_BASE_URL_PROD
-    : import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: apiBaseURL.replace(/\/$/, ''),
   headers: {
     'Content-Type': 'application/json',
   },

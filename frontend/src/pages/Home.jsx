@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Building2 } from 'lucide-react';
 import { getFeaturedProperties } from '@/api/properties';
 import PropertyCard from '@/components/properties/PropertyCard';
 import { SkeletonList } from '@/components/ui/Skeleton';
@@ -22,6 +22,25 @@ const BED_OPTIONS = [
   { value: '2', label: '2+' },
   { value: '3', label: '3+' },
   { value: '4', label: '4+' },
+];
+
+const RENTAL_CATEGORIES = [
+  { label: 'Self-Contain', description: 'Private room, bath and kitchenette', to: '/properties?type=self_contain' },
+  { label: 'Mini Flats', description: 'Separate bedroom and sitting room', to: '/properties?type=mini_flat' },
+  { label: '1 Bedroom', description: 'Compact homes for individuals and couples', to: '/properties?bedrooms=1' },
+  { label: '2 Bedrooms', description: 'Practical apartments for small families', to: '/properties?bedrooms=2' },
+  { label: '3 Bedrooms', description: 'Spacious flats and family houses', to: '/properties?bedrooms=3' },
+];
+
+const POPULAR_LOCATIONS = [
+  { label: 'Lagos', search: 'Lagos' },
+  { label: 'Abuja', search: 'Abuja' },
+  { label: 'Port Harcourt', search: 'Port Harcourt' },
+  { label: 'Akwa Ibom', search: 'Akwa Ibom' },
+  { label: 'Ibadan', search: 'Ibadan' },
+  { label: 'Enugu', search: 'Enugu' },
+  { label: 'Benin City', search: 'Benin City' },
+  { label: 'Kaduna', search: 'Kaduna' },
 ];
 
 export default function Home() {
@@ -58,10 +77,10 @@ export default function Home() {
 
         <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col items-center justify-center px-4 py-24 text-center sm:px-6 lg:px-8">
           <h1 className="max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Find Your <span className="text-primary-300">Perfect Nest</span> in Lagos
+            Find Your <span className="text-primary-300">Perfect Nest</span> in Nigeria
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-gray-200 sm:text-xl">
-            Browse apartments, houses and condos across Lagos with verified hosts and prices in Naira.
+            Browse self-contains, mini flats, apartments and houses across Nigeria with verified hosts and prices in Naira.
           </p>
 
           <form
@@ -77,7 +96,7 @@ export default function Home() {
                   type="text"
                   value={searchCity}
                   onChange={(e) => setSearchCity(e.target.value)}
-                  placeholder="Lekki, Ikeja, Ikoyi..."
+                  placeholder="Lagos, Abuja, Uyo..."
                   className="w-full rounded-md border border-gray-300 px-3 py-2.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 />
               </div>
@@ -137,11 +156,45 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="border-b border-gray-100 bg-white py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-7">
+            <h2 className="text-2xl font-bold text-gray-900">Browse by home type</h2>
+            <p className="mt-1 text-gray-500">Find the Nigerian rental category that fits your needs.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {RENTAL_CATEGORIES.map((category) => (
+              <Link key={category.label} to={category.to} className="rounded-xl border border-gray-200 p-5 transition hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md">
+                <Building2 className="h-6 w-6 text-primary-600" />
+                <h3 className="mt-3 font-semibold text-gray-900">{category.label}</h3>
+                <p className="mt-1 text-sm text-gray-500">{category.description}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-gray-50 py-14">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-7">
+            <h2 className="text-2xl font-bold text-gray-900">Popular locations in Nigeria</h2>
+            <p className="mt-1 text-gray-500">Explore rentals in leading cities and state capitals.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {POPULAR_LOCATIONS.map((location) => (
+              <Link key={location.label} to={`/properties?search=${encodeURIComponent(location.search)}`} className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary-300 hover:text-primary-700">
+                {location.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-8 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Featured Properties</h2>
-            <p className="mt-1 text-gray-500">Handpicked homes in Lagos just for you</p>
+            <p className="mt-1 text-gray-500">Handpicked homes across Nigeria just for you</p>
           </div>
           <Link to="/properties" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
             View all &rarr;

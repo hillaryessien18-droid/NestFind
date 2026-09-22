@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from urllib.parse import quote_plus
 from .models import Amenity, Property, PropertyImage, Review, SavedProperty, Enquiry
 
 
@@ -59,6 +60,7 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source="user.full_name", read_only=True)
     user_avatar = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
+    google_maps_url = serializers.SerializerMethodField()
 
     def get_user_avatar(self, obj):
         if not obj.user.avatar:
@@ -71,12 +73,17 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
             "id", "title", "description", "property_type", "status", "price",
             "bedrooms", "bathrooms", "area_sqft", "address", "city", "state",
             "country", "zip_code", "latitude", "longitude", "images",
+            "google_maps_url",
             "amenities", "is_furnished", "available_from", "minimum_lease_months",
             "max_guests", "views_count", "average_rating", "review_count",
             "user", "user_name", "user_avatar", "is_saved", "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "user", "views_count", "created_at", "updated_at"]
+
+    def get_google_maps_url(self, obj):
+        query = ", ".join(part for part in [obj.address, obj.city, obj.state, obj.country] if part)
+        return f"https://www.google.com/maps/search/?api=1&query={quote_plus(query)}"
 
     def get_is_saved(self, obj):
         request = self.context.get("request")

@@ -1,8 +1,10 @@
 import os
+import warnings
 from pathlib import Path
 from datetime import timedelta
 from urllib.parse import urlparse, parse_qsl, unquote
 from dotenv import load_dotenv
+import psycopg2
 
 load_dotenv()
 
@@ -82,22 +84,48 @@ def _parse_database_url(url):
     return db
 
 
+def _postgres_is_reachable(config):
+    """Return whether the configured PostgreSQL database accepts connections."""
+    connection_options = config.get("OPTIONS", {})
+    try:
+        connection = psycopg2.connect(
+            dbname=config["NAME"],
+            user=config["USER"],
+            password=config["PASSWORD"],
+            host=config["HOST"],
+            port=config["PORT"],
+            connect_timeout=int(os.getenv("DB_CONNECT_TIMEOUT", "3")),
+            **connection_options,
+        )
+    except (psycopg2.Error, OSError, ValueError):
+        return False
+
+    connection.close()
+    return True
+
+
 _database_url = os.getenv("DATABASE_URL")
 if _database_url:
-    DATABASES = {"default": _parse_database_url(_database_url)}
-elif os.getenv("DB_HOST"):
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "nestfind_db"),
-            "USER": os.getenv("DB_USER", "postgres"),
-            "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-            "OPTIONS": {"sslmode": "require"} if "neon.tech" in os.getenv("DB_HOST", "") else {},
-        }
-    }
+    _postgres_database = _parse_database_url(_database_url)
 else:
+    _postgres_host = os.getenv("DB_HOST", "localhost")
+    _postgres_database = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME", "nestfind_db"),
+        "USER": os.getenv("DB_USER", "postgres"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "postgres"),
+        "HOST": _postgres_host,
+        "PORT": os.getenv("DB_PORT", "5432"),
+        "OPTIONS": {"sslmode": "require"} if "neon.tech" in _postgres_host else {},
+    }
+
+if _postgres_is_reachable(_postgres_database):
+    DATABASES = {"default": _postgres_database}
+else:
+    warnings.warn(
+        "PostgreSQL is unreachable; falling back to the local SQLite database.",
+        RuntimeWarning,
+    )
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
@@ -171,6 +199,12 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
 ).split(",")
+CORS_ALLOWED_ORIGIN_REGEXES = os.getenv(
+    "CORS_ALLOWED_ORIGIN_REGEXES", r"^https://.*\.vercel\.app$"
+).split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    "CSRF_TRUSTED_ORIGINS", "https://*.vercel.app"
+).split(",")
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -180,12 +214,20 @@ FLW_ENCRYPTION_KEY = os.getenv("FLW_ENCRYPTION_KEY", "")
 FLW_BASE_URL = os.getenv("FLW_BASE_URL", "https://api.flutterwave.com/v3")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+_email_backend = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+_default_mailer = {"BACKEND": _email_backend}
+if _email_backend == "django.core.mail.backends.smtp.EmailBackend":
+    _default_mailer["OPTIONS"] = {
+        "host": os.getenv("EMAIL_HOST", "smtp.gmail.com"),
+        "port": int(os.getenv("EMAIL_PORT", "587")),
+        "use_tls": os.getenv("EMAIL_USE_TLS", "True").lower() == "true",
+        "username": os.getenv("EMAIL_HOST_USER", ""),
+        "password": os.getenv("EMAIL_HOST_PASSWORD", ""),
+    }
+
+MAILERS = {"default": _default_mailer}
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@nestfind.com")
 
 CLOUDINARY_STORAGE = {

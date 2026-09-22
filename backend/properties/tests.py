@@ -228,6 +228,32 @@ class PropertyAPITests(TestCase):
     def test_filter_by_city(self):
         response = self.client.get("/api/properties/", {"city": "New York"})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_city_filter_also_matches_state_and_address(self):
+        abuja_property = Property.objects.create(
+            user=self.host,
+            title="2-Bedroom Flat, Wuse 2, Abuja",
+            description="A Nigerian rental property",
+            property_type="flat",
+            price=1800000,
+            bedrooms=2,
+            bathrooms=2,
+            area_sqft=1250,
+            address="Aminu Kano Crescent, Wuse 2, Abuja",
+            city="Wuse 2",
+            state="FCT Abuja",
+            country="Nigeria",
+        )
+
+        response = self.client.get(
+            "/api/properties/",
+            {"city": "Abuja", "bedrooms": 2, "price__lte": 2000000},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], str(abuja_property.id))
 
     def test_filter_by_price(self):
         response = self.client.get("/api/properties/", {"price_min": 1000, "price_max": 2000})
