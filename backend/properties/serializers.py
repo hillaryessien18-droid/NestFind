@@ -17,6 +17,14 @@ def build_absolute_url(request, url):
     return url
 
 
+def property_image_url(request, image):
+    if image is None:
+        return None
+    if image.external_url:
+        return image.external_url
+    return build_absolute_url(request, image.image.url if image.image else None)
+
+
 class PropertyImageSerializer(serializers.ModelSerializer):
     property = serializers.PrimaryKeyRelatedField(
         queryset=Property.objects.all(),
@@ -30,7 +38,7 @@ class PropertyImageSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def get_image(self, obj):
-        return build_absolute_url(self.context.get("request"), obj.image.url)
+        return property_image_url(self.context.get("request"), obj)
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
@@ -40,7 +48,8 @@ class PropertyListSerializer(serializers.ModelSerializer):
     user_name = serializers.CharField(source="user.full_name", read_only=True)
 
     def get_primary_image(self, obj):
-        return build_absolute_url(self.context.get("request"), obj.primary_image)
+        image = obj.images.filter(is_primary=True).first() or obj.images.first()
+        return property_image_url(self.context.get("request"), image)
 
     class Meta:
         model = Property

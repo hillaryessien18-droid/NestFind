@@ -39,8 +39,10 @@ class BookingSerializer(serializers.ModelSerializer):
         img = obj.property.images.filter(is_primary=True).first()
         if not img:
             img = obj.property.images.first()
-        if img and request:
-            return request.build_absolute_uri(img.image.url)
+        if img and img.external_url:
+            return img.external_url
+        if img and img.image:
+            return request.build_absolute_uri(img.image.url) if request else img.image.url
         return None
 
     def get_property_address(self, obj):

@@ -975,6 +975,7 @@ class Command(BaseCommand):
             PropertyImage.objects.create(
                 property=prop,
                 image=primary_image,
+                external_url=unsplash_url(remote_photos[0]),
                 caption=f"{prop.title} - exterior",
                 is_primary=True,
                 order=0,

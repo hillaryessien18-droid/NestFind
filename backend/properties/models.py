@@ -105,6 +105,7 @@ class PropertyImage(models.Model):
         Property, on_delete=models.CASCADE, related_name="images"
     )
     image = models.ImageField(upload_to="properties/")
+    external_url = models.URLField(max_length=500, blank=True)
     caption = models.CharField(max_length=255, blank=True)
     is_primary = models.BooleanField(default=False)
     order = models.PositiveIntegerField(default=0)

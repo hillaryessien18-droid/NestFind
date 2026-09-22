@@ -24,6 +24,15 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (
+      typeof error.response?.data === 'string'
+      && error.response.data.trimStart().startsWith('<')
+    ) {
+      error.response.data = {
+        detail: 'The server rejected the request. Please try again shortly.',
+      };
+    }
+
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
