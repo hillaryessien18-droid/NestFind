@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Building2 } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -8,7 +7,7 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link to="/" className="flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary-600" />
+              <img src="/nestfind-logo.svg" alt="" className="h-7 w-7" />
               <span className="text-lg font-bold text-gray-900">NestFind</span>
             </Link>
             <p className="mt-3 text-sm text-gray-500">

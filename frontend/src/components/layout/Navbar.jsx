@@ -33,7 +33,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <Building2 className="h-7 w-7 text-primary-600" />
+          <img src="/nestfind-logo.svg" alt="" className="h-8 w-8" />
           <span className="text-xl font-bold text-gray-900">NestFind</span>
         </Link>
 
