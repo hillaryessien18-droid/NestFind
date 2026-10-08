@@ -26,7 +26,7 @@ services:
       - key: CSRF_TRUSTED_ORIGINS
         value: https://*.vercel.app
       - key: FRONTEND_URL
-        sync: false
+        value: https://nest-find-alpha.vercel.app
       - key: FLW_PUBLIC_KEY
         sync: false
       - key: FLW_SECRET_KEY
