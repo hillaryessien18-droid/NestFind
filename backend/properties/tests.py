@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import Property
+from .models import Property, PropertyImage
 
 User = get_user_model()
 
@@ -51,6 +51,32 @@ class PropertyEndpointTests(APITestCase):
 
     def authenticate(self, user):
         self.client.force_authenticate(user=user)
+
+    def test_seed_uyo_bungalow_uses_bundled_photo(self):
+        seed_host = create_user("lagoshost@nestfind.com", "host")
+        payload = property_payload(
+            title="3-Bedroom Bungalow, Shelter Afrique, Uyo",
+            city="Uyo",
+            state="Akwa Ibom",
+        )
+        payload.pop("amenity_ids")
+        prop = Property.objects.create(
+            user=seed_host,
+            **payload,
+        )
+        PropertyImage.objects.create(
+            property=prop,
+            image="properties/old-uyo-photo.jpg",
+            is_primary=True,
+            external_url="",
+        )
+
+        expected = "http://testserver/static/properties/uyo-shelter-afrique-bungalow.jpg"
+        listing = self.client.get("/api/properties/?search=Shelter+Afrique")
+        detail = self.client.get(f"/api/properties/{prop.id}/")
+
+        self.assertEqual(listing.data["results"][0]["primary_image"], expected)
+        self.assertEqual(detail.data["images"][0]["image"], expected)
 
     def test_host_can_create_list_update_and_delete_property(self):
         self.authenticate(self.host)

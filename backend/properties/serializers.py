@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from urllib.parse import quote_plus
+from django.conf import settings
 from .models import Amenity, Property, PropertyImage, Review, SavedProperty, Enquiry
 
 
@@ -17,9 +18,16 @@ def build_absolute_url(request, url):
     return url
 
 
-def property_image_url(request, image):
+def property_image_url(request, image, property_obj=None):
     if image is None:
         return None
+    property_obj = property_obj or image.property
+    if (
+        image.is_primary
+        and property_obj.title == "3-Bedroom Bungalow, Shelter Afrique, Uyo"
+        and property_obj.user.email == "lagoshost@nestfind.com"
+    ):
+        return build_absolute_url(request, f"{settings.STATIC_URL}properties/uyo-shelter-afrique-bungalow.jpg")
     if image.external_url:
         return image.external_url
     return build_absolute_url(request, image.image.url if image.image else None)
@@ -50,7 +58,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
 
     def get_primary_image(self, obj):
         image = obj.images.filter(is_primary=True).first() or obj.images.first()
-        return property_image_url(self.context.get("request"), image)
+        return property_image_url(self.context.get("request"), image, obj)
 
     def get_primary_image_caption(self, obj):
         image = obj.images.filter(is_primary=True).first() or obj.images.first()
