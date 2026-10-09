@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.test import TestCase, override_settings
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.test import APITestCase
 from payments.models import Notification
@@ -23,12 +26,13 @@ class AuthenticationEndpointTests(APITestCase):
         }, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(mail.outbox[0].to, ["new.member@example.com"])
         self.assertEqual(mail.outbox[0].subject, "Welcome to NestFind")
         self.assertIn("Hello Amara,", mail.outbox[0].body)
         self.assertIn("Explore homes", mail.outbox[0].body)
         self.assertEqual(mail.outbox[0].alternatives[0].mimetype, "text/html")
+        self.assertEqual(mail.outbox[1].subject, "Verify your NestFind email address")
         self.assertTrue(Notification.objects.filter(
             user__email="new.member@example.com", type="welcome"
         ).exists())
@@ -163,6 +167,7 @@ class LoginAPITests(TestCase):
             role="guest",
         )
 
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
     def test_login_success(self):
         response = self.client.post("/api/auth/login/", {
             "email": "test@example.com",
@@ -171,6 +176,9 @@ class LoginAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("tokens", response.data)
         self.assertIn("user", response.data)
+        self.assertEqual(mail.outbox[0].subject, "New sign-in to your NestFind account")
+        self.client.post("/api/auth/login/", {"email": "test@example.com", "password": "testpass123"})
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_login_wrong_password(self):
         response = self.client.post("/api/auth/login/", {
@@ -253,7 +261,7 @@ class PhoneVerificationAPITests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    @override_settings(BREVO_API_KEY="test-key", BREVO_SMS_API_KEY="", BREVO_SMS_SENDER="NestFind")
+    @override_settings(BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
     @patch("accounts.phone_verification.requests.post")
     def test_send_and_verify_phone_code(self, post):
         post.return_value.status_code = 201
@@ -299,13 +307,60 @@ class PhoneVerificationAPITests(TestCase):
         self.assertEqual(post.call_args.kwargs["json"]["recipient"], "2348099998888")
         self.assertFalse(response.data["user"]["phone_verified"])
 
-    @override_settings(BREVO_API_KEY="email-key", BREVO_SMS_API_KEY="sms-key", BREVO_SMS_SENDER="NestFind")
+    @override_settings(BREVO_API_KEY="shared-key", BREVO_SMS_SENDER="NestFind")
     @patch("accounts.phone_verification.requests.post")
-    def test_separate_sms_api_key_takes_precedence(self, post):
+    def test_sms_uses_shared_brevo_api_key(self, post):
         post.return_value.status_code = 201
         response = self.client.post("/api/auth/phone/send-code/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(post.call_args.kwargs["headers"]["api-key"], "sms-key")
+        self.assertEqual(post.call_args.kwargs["headers"]["api-key"], "shared-key")
+
+
+class EmailVerificationAndResetTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="secure@example.com", username="secureuser", password="OldPass123!",
+            first_name="Amara",
+        )
+
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    def test_email_code_is_hashed_rate_limited_and_can_verify(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post("/api/auth/email/send-code/")
+        self.assertEqual(response.status_code, 200)
+        code = mail.outbox[0].body.split("code is ")[1][:6]
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.email_verification_code, code)
+        self.assertEqual(self.client.post("/api/auth/email/send-code/").status_code, 429)
+        self.assertEqual(self.client.post("/api/auth/email/verify/", {"code": code}).status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.email_verified)
+
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    def test_password_reset_link_is_single_use_and_sends_alert(self):
+        request = self.client.post("/api/auth/password-reset/request/", {"email": self.user.email})
+        self.assertEqual(request.status_code, 200)
+        self.assertEqual(mail.outbox[0].subject, "Reset your NestFind password")
+        self.assertEqual(self.client.post("/api/auth/password-reset/request/", {"email": self.user.email}).status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        payload = {"uid": uid, "token": token, "new_password": "NewPass456!"}
+        response = self.client.post("/api/auth/password-reset/confirm/", payload)
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("NewPass456!"))
+        self.assertEqual(mail.outbox[1].subject, "Your NestFind password was changed")
+        self.assertEqual(self.client.post("/api/auth/password-reset/confirm/", payload).status_code, 400)
+
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    def test_reset_request_does_not_disclose_unknown_account(self):
+        known = self.client.post("/api/auth/password-reset/request/", {"email": self.user.email})
+        unknown = self.client.post("/api/auth/password-reset/request/", {"email": "unknown@example.com"})
+        self.assertEqual(known.status_code, unknown.status_code)
+        self.assertEqual(known.data, unknown.data)
+        self.assertEqual(len(mail.outbox), 1)
 
 
 class LogoutAPITests(TestCase):

@@ -27,3 +27,17 @@ export const sendPhoneVerificationCode = () =>
 
 export const verifyPhoneNumber = (code) =>
   apiClient.post('/auth/phone/verify/', { code }).then((response) => response.data);
+
+export const sendEmailVerificationCode = () =>
+  apiClient.post('/auth/email/send-code/').then((response) => response.data);
+
+export const verifyEmailAddress = (code) =>
+  apiClient.post('/auth/email/verify/', { code }).then((response) => response.data);
+
+export const requestPasswordReset = (email) =>
+  apiClient.post('/auth/password-reset/request/', { email }).then((response) => response.data);
+
+export const confirmPasswordReset = (uid, token, newPassword) =>
+  apiClient.post('/auth/password-reset/confirm/', {
+    uid, token, new_password: newPassword,
+  }).then((response) => response.data);

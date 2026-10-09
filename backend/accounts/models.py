@@ -23,6 +23,13 @@ class User(AbstractUser):
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True)
     is_verified = models.BooleanField(default=False)
+    email_verified = models.BooleanField(default=False)
+    email_verification_code = models.CharField(max_length=128, blank=True)
+    email_verification_expires_at = models.DateTimeField(null=True, blank=True)
+    email_verification_sent_at = models.DateTimeField(null=True, blank=True)
+    email_verification_attempts = models.PositiveSmallIntegerField(default=0)
+    password_reset_requested_at = models.DateTimeField(null=True, blank=True)
+    login_alert_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

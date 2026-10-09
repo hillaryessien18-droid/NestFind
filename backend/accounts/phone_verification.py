@@ -17,6 +17,31 @@ RESEND_DELAY = timedelta(seconds=60)
 MAX_ATTEMPTS = 5
 
 
+def send_brevo_sms(recipient, content):
+    if not settings.BREVO_API_KEY:
+        logger.error("Transactional SMS not sent: Brevo API key is missing")
+        return False
+    try:
+        response = requests.post(
+            BREVO_SMS_URL,
+            headers={"api-key": settings.BREVO_API_KEY, "accept": "application/json", "content-type": "application/json"},
+            json={
+                "sender": settings.BREVO_SMS_SENDER,
+                "recipient": recipient.lstrip("+"),
+                "content": content,
+                "type": "transactional",
+            },
+            timeout=10,
+        )
+    except requests.RequestException:
+        logger.exception("Transactional SMS request failed")
+        return False
+    if response.status_code != 201:
+        logger.error("Transactional SMS rejected (HTTP %s)", response.status_code)
+        return False
+    return True
+
+
 def send_phone_code(user):
     if not user.phone:
         return "missing_phone"
@@ -25,29 +50,8 @@ def send_phone_code(user):
     now = timezone.now()
     if user.phone_verification_sent_at and now - user.phone_verification_sent_at < RESEND_DELAY:
         return "rate_limited"
-    api_key = settings.BREVO_SMS_API_KEY or settings.BREVO_API_KEY
-    if not api_key:
-        logger.error("Phone verification SMS not sent: Brevo API key is missing")
-        return "unavailable"
-
     code = f"{secrets.randbelow(1_000_000):06d}"
-    try:
-        response = requests.post(
-            BREVO_SMS_URL,
-            headers={"api-key": api_key, "accept": "application/json", "content-type": "application/json"},
-            json={
-                "sender": settings.BREVO_SMS_SENDER,
-                "recipient": user.phone.lstrip("+"),
-                "content": f"Your NestFind phone verification code is {code}. It expires in 10 minutes.",
-                "type": "transactional",
-            },
-            timeout=10,
-        )
-    except requests.RequestException:
-        logger.exception("Phone verification SMS request failed")
-        return "unavailable"
-    if response.status_code != 201:
-        logger.error("Phone verification SMS rejected (HTTP %s)", response.status_code)
+    if not send_brevo_sms(user.phone, f"Your NestFind phone verification code is {code}. It expires in 10 minutes."):
         return "unavailable"
 
     user.phone_verification_code = make_password(code)

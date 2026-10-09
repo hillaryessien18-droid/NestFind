@@ -19,6 +19,7 @@ from .serializers import (
 )
 from .services import initialize_payment, verify_payment, generate_tx_ref
 from .emails import send_payment_confirmation_email
+from accounts.phone_verification import send_brevo_sms
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,11 @@ def confirm_payment(booking, transaction):
         buyer.save(update_fields=["role"])
 
     send_payment_confirmation_email(buyer, booking, transaction)
+    if buyer.phone and buyer.phone_verified:
+        send_brevo_sms(
+            buyer.phone,
+            f"NestFind payment confirmed: NGN {booking.amount:,.2f}. Reference: {transaction.tx_ref}.",
+        )
     send_welcome_notification(buyer, booking)
     send_host_notification(prop.user, booking, buyer.full_name or buyer.email)
 

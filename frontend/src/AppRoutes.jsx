@@ -6,6 +6,8 @@ import ProtectedRoute from '@/components/ui/ProtectedRoute';
 const Home = lazy(() => import('@/pages/Home'));
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const Properties = lazy(() => import('@/pages/Properties'));
 const PropertyDetail = lazy(() => import('@/pages/PropertyDetail'));
 const CreateProperty = lazy(() => import('@/pages/CreateProperty'));
@@ -44,6 +46,8 @@ export default function AppRoutes() {
           <Route index element={<Home />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:uid/:token" element={<ResetPassword />} />
           <Route path="properties" element={<Properties />} />
           <Route path="properties/:id" element={<PropertyDetail />} />
           <Route path="about" element={<About />} />

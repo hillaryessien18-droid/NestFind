@@ -24,9 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "username", "first_name", "last_name",
             "full_name", "phone", "role", "avatar", "bio",
-            "is_verified", "phone_verified", "properties_count", "created_at",
+            "is_verified", "email_verified", "phone_verified", "properties_count", "created_at",
         ]
-        read_only_fields = ["id", "is_verified", "phone_verified", "created_at"]
+        read_only_fields = ["id", "is_verified", "email_verified", "phone_verified", "created_at"]
 
     def get_properties_count(self, obj):
         if obj.role == "host":

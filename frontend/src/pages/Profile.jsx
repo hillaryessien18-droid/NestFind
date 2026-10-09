@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { User, Lock } from 'lucide-react';
-import { sendPhoneVerificationCode, verifyPhoneNumber } from '@/api/auth';
+import { sendEmailVerificationCode, verifyEmailAddress, sendPhoneVerificationCode, verifyPhoneNumber } from '@/api/auth';
 
 const profileSchema = z.object({
   first_name: z.string().min(1, 'Required'),
@@ -24,6 +24,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('profile');
   const [verificationCode, setVerificationCode] = useState('');
   const [phoneBusy, setPhoneBusy] = useState(false);
+  const [emailCode, setEmailCode] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
 
   const { register: regProfile, handleSubmit: handleProfileSubmit, formState: { errors: profileErrors, isSubmitting: profileSubmitting } } = useForm({
     resolver: zodResolver(profileSchema),
@@ -82,6 +84,33 @@ export default function Profile() {
       toast.error(err.response?.data?.error || 'Could not verify your phone number.');
     } finally {
       setPhoneBusy(false);
+    }
+  };
+
+  const onSendEmailCode = async () => {
+    setEmailBusy(true);
+    try {
+      await sendEmailVerificationCode();
+      toast.success('Verification code sent by email.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not send a verification code.');
+    } finally {
+      setEmailBusy(false);
+    }
+  };
+
+  const onVerifyEmail = async (event) => {
+    event.preventDefault();
+    setEmailBusy(true);
+    try {
+      await verifyEmailAddress(emailCode);
+      await fetchProfile();
+      setEmailCode('');
+      toast.success('Email address verified.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not verify your email address.');
+    } finally {
+      setEmailBusy(false);
     }
   };
 
@@ -174,6 +203,30 @@ export default function Profile() {
             />
             <button type="submit" disabled={phoneBusy} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Verify phone</button>
             <button type="button" onClick={onSendPhoneCode} disabled={phoneBusy} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50">Send code</button>
+          </div>
+        </form>
+      )}
+
+      {activeTab === 'profile' && user?.email && !user.email_verified && (
+        <form onSubmit={onVerifyEmail} className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
+          <h2 className="font-semibold text-gray-900">Verify your email address</h2>
+          <p className="text-sm text-gray-600">Enter the six-digit code sent to {user.email}. Codes expire after 10 minutes.</p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              pattern="[0-9]{6}"
+              required
+              aria-label="Six-digit email verification code"
+              value={emailCode}
+              onChange={(event) => setEmailCode(event.target.value.replace(/\D/g, ''))}
+              className={`${inputClass} mt-0 max-w-48`}
+              placeholder="123456"
+            />
+            <button type="submit" disabled={emailBusy} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Verify email</button>
+            <button type="button" onClick={onSendEmailCode} disabled={emailBusy} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50">Send code</button>
           </div>
         </form>
       )}

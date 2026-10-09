@@ -89,6 +89,10 @@ export default function Login() {
           </button>
         </form>
 
+        <p className="mt-3 text-right text-sm">
+          <Link to="/forgot-password" className="font-semibold text-primary-600 hover:text-primary-700">Forgot password?</Link>
+        </p>
+
         <p className="mt-6 text-center text-sm text-gray-500">
           Don't have an account?{' '}
           <Link to="/register" state={location.state} className="font-semibold text-primary-600 hover:text-primary-700">

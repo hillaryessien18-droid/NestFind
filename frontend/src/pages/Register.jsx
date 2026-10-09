@@ -63,7 +63,9 @@ export default function Register() {
           : 'Account created. Request an SMS code from your profile to verify your phone.');
         navigate('/profile', { replace: true });
       } else {
-        toast.success('Account created successfully!');
+        toast.success(result.email_verification_sent
+          ? 'Account created. Check your email for a verification code.'
+          : 'Account created successfully!');
         navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/', { replace: true });
       }
     } catch (err) {

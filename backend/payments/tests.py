@@ -78,10 +78,13 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Booking.objects.exists())
 
-    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django", BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
     @patch("payments.views.verify_payment")
     @patch("payments.views.initialize_payment")
     def test_new_user_payment_is_verified_and_confirmed(self, initialize, verify):
+        self.guest.phone = "+2348012345678"
+        self.guest.phone_verified = True
+        self.guest.save(update_fields=["phone", "phone_verified"])
         initialize.return_value = {
             "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
         }
@@ -95,7 +98,11 @@ class PaymentFlowTests(APITestCase):
             "amount": 1200000, "flw_ref": "FLW-123", "payment_type": "card",
         }}
 
-        response = self.client.get(f"/api/payments/verify/{tx_ref}/")
+        with patch("accounts.phone_verification.requests.post") as sms:
+            sms.return_value.status_code = 201
+            response = self.client.get(f"/api/payments/verify/{tx_ref}/")
+            self.assertEqual(sms.call_args.kwargs["json"]["recipient"], "2348012345678")
+            self.assertIn(tx_ref, sms.call_args.kwargs["json"]["content"])
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "successful")
