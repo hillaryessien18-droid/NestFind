@@ -70,6 +70,39 @@ class PaymentFlowTests(APITestCase):
         self.assertNotIn("code", response.data)
         self.assertFalse(Booking.objects.exists())
 
+    @patch("payments.views.initialize_payment")
+    def test_invalid_optional_phone_does_not_block_checkout(self, provider):
+        provider.return_value = {
+            "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
+        }
+        self.client.force_authenticate(user=self.guest)
+        response = self.client.post("/api/payments/initialize/", {
+            "property_id": str(self.property.id), "booking_type": "purchase",
+            "phone": "old-number-with-no-code-999",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(provider.call_args.kwargs["phone"])
+        self.assertEqual(PaymentTransaction.objects.get(tx_ref=response.data["tx_ref"]).customer_phone, "")
+
+    @patch("payments.views.initialize_payment", return_value={"status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}})
+    @patch("payments.views.PaymentTransaction.objects.create", side_effect=RuntimeError("database insert failed"))
+    def test_transaction_record_failure_returns_service_error_and_removes_booking(self, _create, _provider):
+        self.client.force_authenticate(user=self.guest)
+        response = self.client.post("/api/payments/initialize/", {
+            "property_id": str(self.property.id), "booking_type": "purchase",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Booking.objects.exists())
+
+    @patch("payments.views.initialize_payment", return_value=None)
+    def test_unexpected_provider_response_does_not_leave_pending_booking(self, _provider):
+        self.client.force_authenticate(user=self.guest)
+        response = self.client.post("/api/payments/initialize/", {
+            "property_id": str(self.property.id), "booking_type": "purchase",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertFalse(Booking.objects.exists())
+
     def test_rent_respects_minimum_lease(self):
         self.client.force_authenticate(user=self.tenant)
         response = self.client.post("/api/payments/initialize/", {

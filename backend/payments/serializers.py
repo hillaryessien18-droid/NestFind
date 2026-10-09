@@ -90,10 +90,14 @@ class PaymentInitializeSerializer(serializers.Serializer):
     months = serializers.IntegerField(min_value=1, max_value=60, required=False)
     start_date = serializers.DateField(required=False)
     full_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=64, required=False, allow_blank=True)
 
     def validate_phone(self, value):
-        return normalize_phone(value)
+        try:
+            return normalize_phone(value)
+        except serializers.ValidationError:
+            # SMS is optional; an old or mistyped contact number must not block checkout.
+            return ""
 
 
 class TenantDetailSerializer(serializers.ModelSerializer):

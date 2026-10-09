@@ -9,6 +9,20 @@ import { initializePayment } from '@/api/payments';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice, formatNaira } from '@/utils/format';
 
+function paymentErrorMessage(err) {
+  const response = err.response;
+  const data = response?.data;
+  if (response?.status === 503) return data?.error || 'Payments are temporarily unavailable. Please try again later.';
+  if (typeof data?.error === 'string') return data.error;
+  if (typeof data?.detail === 'string') return data.detail;
+  for (const field of ['phone', 'months', 'start_date', 'booking_type', 'property_id', 'full_name']) {
+    if (typeof data?.[field]?.[0] === 'string') return data[field][0];
+  }
+  if (!response) return 'Could not reach the payment service. Please check your connection.';
+  if (response.status >= 500) return 'Payment could not be started. Please try again shortly.';
+  return 'We could not start your payment. Please check your details and try again.';
+}
+
 export default function Payment() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -80,9 +94,7 @@ export default function Payment() {
       }
     },
     onError: (err) => {
-      toast.error(err.response?.data?.phone?.[0] || (err.response?.status === 503
-        ? 'Payments are temporarily unavailable. Please try again later.'
-        : 'We could not start your payment. Please check your details and try again.'));
+      toast.error(paymentErrorMessage(err));
     },
   });
 

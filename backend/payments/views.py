@@ -200,17 +200,27 @@ class PaymentInitializeView(generics.CreateAPIView):
             meta={"booking_id": str(booking.id)},
         )
 
+        if not isinstance(payment_data, dict):
+            payment_data = {"status": "error", "message": "Unexpected Flutterwave response"}
         checkout_url = payment_data.get("data", {}).get("link") if isinstance(payment_data.get("data"), dict) else None
         if payment_data.get("status") == "success" and checkout_url:
-            transaction = PaymentTransaction.objects.create(
-                booking=booking,
-                tx_ref=tx_ref,
-                amount=amount,
-                customer_email=email,
-                customer_phone=phone,
-                customer_name=full_name,
-                status="pending",
-            )
+            try:
+                PaymentTransaction.objects.create(
+                    booking=booking,
+                    tx_ref=tx_ref,
+                    amount=amount,
+                    customer_email=email,
+                    customer_phone=phone,
+                    customer_name=full_name,
+                    status="pending",
+                )
+            except Exception:
+                logger.exception("Flutterwave checkout could not be recorded for %s", tx_ref)
+                booking.delete()
+                return Response(
+                    {"error": "Payment could not be started. Please try again shortly."},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
 
             return Response({
                 "booking_id": str(booking.id),
