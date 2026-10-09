@@ -1,12 +1,37 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from payments.models import Notification
 
 User = get_user_model()
 
 
 class AuthenticationEndpointTests(APITestCase):
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    def test_registration_sends_welcome_email_and_notification(self):
+        response = self.client.post("/api/register/", {
+            "email": "new.member@example.com",
+            "username": "newmember",
+            "first_name": "Amara",
+            "last_name": "Okon",
+            "role": "guest",
+            "password": "StrongPass123!",
+            "password_confirm": "StrongPass123!",
+        }, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["new.member@example.com"])
+        self.assertEqual(mail.outbox[0].subject, "Welcome to NestFind")
+        self.assertIn("Hello Amara,", mail.outbox[0].body)
+        self.assertIn("Explore homes", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].alternatives[0].mimetype, "text/html")
+        self.assertTrue(Notification.objects.filter(
+            user__email="new.member@example.com", type="welcome"
+        ).exists())
+
     def test_register_login_refresh_and_me_aliases(self):
         register_response = self.client.post(
             "/api/register/",

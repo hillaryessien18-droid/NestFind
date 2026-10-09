@@ -248,7 +248,13 @@ if _email_backend == "django.core.mail.backends.smtp.EmailBackend":
     }
 
 MAILERS = {"default": _default_mailer}
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@nestfind.com")
+EMAIL_DELIVERY_PROVIDER = os.getenv("EMAIL_DELIVERY_PROVIDER", "django").lower()
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "" if EMAIL_DELIVERY_PROVIDER == "brevo" else "noreply@nestfind.com",
+)
+DEFAULT_FROM_NAME = os.getenv("DEFAULT_FROM_NAME", "NestFind")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 
 CLOUDINARY_STORAGE = {
     "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),

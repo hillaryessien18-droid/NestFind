@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from payments.models import Notification
+from .emails import send_registration_welcome_email
 from .serializers import (
     UserSerializer,
     RegisterSerializer,
@@ -24,6 +26,18 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        Notification.objects.create(
+            user=user,
+            title="Welcome to NestFind",
+            message=(
+                "Your NestFind account is ready. Start by adding your first listing."
+                if user.role == "host" else
+                "Your NestFind account is ready. Explore homes and save the places you love."
+            ),
+            type="welcome",
+            link="/my-properties" if user.role == "host" else "/properties",
+        )
+        send_registration_welcome_email(user)
         refresh = RefreshToken.for_user(user)
         return Response(
             {

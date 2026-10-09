@@ -3,8 +3,6 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
 from django.utils import timezone
-from django.core.mail import send_mail
-from django.conf import settings
 from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 import logging
@@ -20,6 +18,7 @@ from .serializers import (
     TenantDetailSerializer,
 )
 from .services import initialize_payment, verify_payment, generate_tx_ref
+from .emails import send_payment_confirmation_email
 
 logger = logging.getLogger(__name__)
 
@@ -36,50 +35,6 @@ def payment_details_match(data, transaction):
         and data.get("currency") == transaction.currency
         and paid_amount >= transaction.amount
     )
-
-
-def send_welcome_email(user, booking):
-    """Send welcome email after successful payment."""
-    subject = f"Welcome to NestFind - {booking.get_booking_type_display()} Confirmed!"
-    property_title = booking.property.title
-
-    if booking.booking_type == "rent":
-        message = (
-            f"Dear {user.full_name or user.email},\n\n"
-            f"Congratulations! Your rental of '{property_title}' has been confirmed.\n\n"
-            f"Booking Details:\n"
-            f"- Property: {property_title}\n"
-            f"- Location: {booking.property.address}, {booking.property.city}, {booking.property.state}\n"
-            f"- Duration: {booking.months} month(s)\n"
-            f"- Amount Paid: NGN {booking.amount:,.2f}\n"
-            f"- Start Date: {booking.start_date}\n"
-            f"{'- End Date: ' + str(booking.end_date) if booking.end_date else ''}\n\n"
-            f"Thank you for choosing NestFind! We wish you a wonderful stay.\n\n"
-            f"Best regards,\nNestFind Team"
-        )
-    else:
-        message = (
-            f"Dear {user.full_name or user.email},\n\n"
-            f"Congratulations! Your purchase of '{property_title}' has been confirmed.\n\n"
-            f"Booking Details:\n"
-            f"- Property: {property_title}\n"
-            f"- Location: {booking.property.address}, {booking.property.city}, {booking.property.state}\n"
-            f"- Amount Paid: NGN {booking.amount:,.2f}\n"
-            f"- Purchase Date: {booking.start_date}\n\n"
-            f"Thank you for choosing NestFind! We wish you a great new home.\n\n"
-            f"Best regards,\nNestFind Team"
-        )
-
-    try:
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL or "noreply@nestfind.com",
-            [user.email],
-            fail_silently=True,
-        )
-    except Exception as e:
-        logger.error(f"Failed to send welcome email to {user.email}: {e}")
 
 
 def send_welcome_notification(user, booking):
@@ -137,7 +92,7 @@ def send_host_notification(host, booking, payer_name):
     )
 
 
-def confirm_payment(booking):
+def confirm_payment(booking, transaction):
     """Confirm a booking and send welcome messages."""
     if booking.status == "confirmed":
         return
@@ -156,7 +111,7 @@ def confirm_payment(booking):
         buyer.role = "tenant"
         buyer.save(update_fields=["role"])
 
-    send_welcome_email(buyer, booking)
+    send_payment_confirmation_email(buyer, booking, transaction)
     send_welcome_notification(buyer, booking)
     send_host_notification(prop.user, booking, buyer.full_name or buyer.email)
 
@@ -280,7 +235,7 @@ class PaymentVerifyView(generics.GenericAPIView):
                 transaction.verified = True
                 transaction.save(update_fields=["status", "flw_ref", "payment_method", "verified"])
 
-                confirm_payment(transaction.booking)
+                confirm_payment(transaction.booking, transaction)
 
                 return Response({
                     "status": "successful",
@@ -336,7 +291,7 @@ class PaymentWebhookView(generics.GenericAPIView):
                             transaction.payment_method = verified_data.get("payment_type", "")
                             transaction.verified = True
                             transaction.save(update_fields=["status", "flw_ref", "payment_method", "verified"])
-                            confirm_payment(transaction.booking)
+                            confirm_payment(transaction.booking, transaction)
                         else:
                             logger.warning("Webhook charge could not be verified for %s", tx_ref)
                 except PaymentTransaction.DoesNotExist:

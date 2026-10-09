@@ -3,7 +3,8 @@ from decimal import Decimal
 from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase
+from django.core import mail
+from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -77,10 +78,10 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(Booking.objects.exists())
 
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
     @patch("payments.views.verify_payment")
-    @patch("payments.views.send_welcome_email")
     @patch("payments.views.initialize_payment")
-    def test_new_user_payment_is_verified_and_confirmed(self, initialize, _email, verify):
+    def test_new_user_payment_is_verified_and_confirmed(self, initialize, verify):
         initialize.return_value = {
             "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
         }
@@ -103,6 +104,38 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(Booking.objects.get(id=created.data["booking_id"]).status, "confirmed")
         self.guest.refresh_from_db()
         self.assertEqual(self.guest.role, "tenant")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.guest.email])
+        self.assertIn("Payment confirmed", mail.outbox[0].subject)
+        self.assertIn(tx_ref, mail.outbox[0].body)
+        self.assertIn("NGN 1,200,000.00", mail.outbox[0].body)
+        self.assertIn(f"/receipt/{tx_ref}", mail.outbox[0].body)
+        self.client.get(f"/api/payments/verify/{tx_ref}/")
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    @patch("payments.views.verify_payment")
+    @patch("payments.views.initialize_payment")
+    def test_rental_payment_email_includes_move_in_details(self, initialize, verify):
+        initialize.return_value = {
+            "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
+        }
+        self.client.force_authenticate(user=self.tenant)
+        created = self.client.post("/api/payments/initialize/", {
+            "property_id": str(self.property.id), "booking_type": "rent", "months": 3
+        }, format="json")
+        tx_ref = created.data["tx_ref"]
+        verify.return_value = {"status": "success", "data": {
+            "status": "successful", "tx_ref": tx_ref, "currency": "NGN",
+            "amount": 3600000, "flw_ref": "FLW-RENT", "payment_type": "card",
+        }}
+
+        response = self.client.get(f"/api/payments/verify/{tx_ref}/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Lease duration: 3 month(s)", mail.outbox[0].body)
+        self.assertIn("complete your move-in details", mail.outbox[0].body)
 
     @patch("payments.views.verify_payment")
     @patch("payments.views.initialize_payment")

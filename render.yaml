@@ -41,9 +41,11 @@ services:
         sync: false
       - key: USE_CLOUDINARY
         value: "true"
-      - key: EMAIL_BACKEND
-        value: django.core.mail.backends.smtp.EmailBackend
-      - key: EMAIL_HOST_USER
+      - key: EMAIL_DELIVERY_PROVIDER
+        value: brevo
+      - key: BREVO_API_KEY
         sync: false
-      - key: EMAIL_HOST_PASSWORD
+      - key: DEFAULT_FROM_EMAIL
         sync: false
+      - key: DEFAULT_FROM_NAME
+        value: NestFind
