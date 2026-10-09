@@ -178,3 +178,14 @@ class FlutterwaveClientTests(SimpleTestCase):
         })
         initialize_payment("NF-123", Decimal("1200.00"), "buyer@example.com", "Buyer")
         self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "Bearer configured-server-key")
+
+    @override_settings(FRONTEND_URL="https://nest-find-alpha.vercel.app")
+    @patch("payments.services.requests.post")
+    @patch.dict("os.environ", {"FLW_SECRET_KEY": "configured-server-key", "FRONTEND_URL": "http://localhost:5173"})
+    def test_checkout_return_url_uses_validated_frontend_setting(self, post):
+        post.return_value = Mock(json=lambda: {"status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}})
+        initialize_payment("NF-return", Decimal("1200.00"), "buyer@example.com", "Buyer")
+        self.assertEqual(
+            post.call_args.kwargs["json"]["redirect_url"],
+            "https://nest-find-alpha.vercel.app/payment/success",
+        )

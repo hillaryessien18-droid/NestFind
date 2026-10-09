@@ -232,7 +232,20 @@ FLW_PUBLIC_KEY = os.getenv("FLW_PUBLIC_KEY", "")
 FLW_SECRET_KEY = os.getenv("FLW_SECRET_KEY", "")
 FLW_ENCRYPTION_KEY = os.getenv("FLW_ENCRYPTION_KEY", "")
 FLW_BASE_URL = os.getenv("FLW_BASE_URL", "https://api.flutterwave.com/v3")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+_production_frontend_url = "https://nest-find-alpha.vercel.app"
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL", "http://localhost:5173" if DEBUG else _production_frontend_url
+).strip().rstrip("/")
+if not DEBUG:
+    _frontend_parts = urlparse(FRONTEND_URL)
+    if _frontend_parts.scheme != "https" or not _frontend_parts.hostname or _frontend_parts.hostname in {
+        "localhost", "127.0.0.1", "::1"
+    }:
+        warnings.warn(
+            "FRONTEND_URL is not a public HTTPS URL; using the deployed NestFind site.",
+            RuntimeWarning,
+        )
+        FRONTEND_URL = _production_frontend_url
 
 _email_backend = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"

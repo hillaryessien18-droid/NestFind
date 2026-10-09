@@ -1,6 +1,7 @@
 import os
 import hashlib
 import requests
+from django.conf import settings
 
 
 def _get_secret_key():
@@ -28,8 +29,7 @@ def initialize_payment(tx_ref, amount, email, name, phone=None, redirect_url=Non
     }
 
     if not redirect_url:
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        redirect_url = f"{frontend_url}/payment/success"
+        redirect_url = f"{settings.FRONTEND_URL.rstrip('/')}/payment/success"
 
     payload = {
         "tx_ref": tx_ref,
