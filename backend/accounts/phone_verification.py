@@ -25,7 +25,8 @@ def send_phone_code(user):
     now = timezone.now()
     if user.phone_verification_sent_at and now - user.phone_verification_sent_at < RESEND_DELAY:
         return "rate_limited"
-    if not settings.BREVO_API_KEY:
+    api_key = settings.BREVO_SMS_API_KEY or settings.BREVO_API_KEY
+    if not api_key:
         logger.error("Phone verification SMS not sent: Brevo API key is missing")
         return "unavailable"
 
@@ -33,7 +34,7 @@ def send_phone_code(user):
     try:
         response = requests.post(
             BREVO_SMS_URL,
-            headers={"api-key": settings.BREVO_API_KEY, "accept": "application/json", "content-type": "application/json"},
+            headers={"api-key": api_key, "accept": "application/json", "content-type": "application/json"},
             json={
                 "sender": settings.BREVO_SMS_SENDER,
                 "recipient": user.phone.lstrip("+"),

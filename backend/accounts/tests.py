@@ -253,7 +253,7 @@ class PhoneVerificationAPITests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    @override_settings(BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
+    @override_settings(BREVO_API_KEY="test-key", BREVO_SMS_API_KEY="", BREVO_SMS_SENDER="NestFind")
     @patch("accounts.phone_verification.requests.post")
     def test_send_and_verify_phone_code(self, post):
         post.return_value.status_code = 201
@@ -261,6 +261,7 @@ class PhoneVerificationAPITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = post.call_args.kwargs["json"]
         self.assertEqual(post.call_args.args[0], "https://api.brevo.com/v3/transactionalSMS/send")
+        self.assertEqual(post.call_args.kwargs["headers"]["api-key"], "test-key")
         self.assertEqual(payload["recipient"], "2348012345678")
         code = payload["content"].split(" is ")[1][:6]
         self.user.refresh_from_db()
@@ -297,6 +298,14 @@ class PhoneVerificationAPITests(TestCase):
         self.assertEqual(response.data["user"]["phone"], "+2348099998888")
         self.assertEqual(post.call_args.kwargs["json"]["recipient"], "2348099998888")
         self.assertFalse(response.data["user"]["phone_verified"])
+
+    @override_settings(BREVO_API_KEY="email-key", BREVO_SMS_API_KEY="sms-key", BREVO_SMS_SENDER="NestFind")
+    @patch("accounts.phone_verification.requests.post")
+    def test_separate_sms_api_key_takes_precedence(self, post):
+        post.return_value.status_code = 201
+        response = self.client.post("/api/auth/phone/send-code/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(post.call_args.kwargs["headers"]["api-key"], "sms-key")
 
 
 class LogoutAPITests(TestCase):

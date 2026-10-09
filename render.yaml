@@ -45,6 +45,8 @@ services:
         value: brevo
       - key: BREVO_API_KEY
         sync: false
+      - key: BREVO_SMS_API_KEY
+        sync: false
       - key: BREVO_SMS_SENDER
         value: NestFind
       - key: DEFAULT_FROM_EMAIL
