@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { CreditCard, CheckCircle, XCircle, Clock, Home, Loader2, ChevronLeft } from 'lucide-react';
+import { CreditCard, CheckCircle, XCircle, Clock, Home, Loader2, ChevronLeft, ReceiptText } from 'lucide-react';
 import { getPaymentHistory } from '@/api/payments';
 import { formatNaira } from '@/utils/format';
 
@@ -75,6 +75,14 @@ export default function PaymentHistory() {
                           </span>
                         )}
                       </div>
+                      {tx.status === 'successful' && (
+                        <Link
+                          to={`/receipt/${tx.tx_ref}`}
+                          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700"
+                        >
+                          <ReceiptText className="h-4 w-4" /> View Receipt
+                        </Link>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">

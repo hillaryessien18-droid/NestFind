@@ -60,6 +60,9 @@ export default function Payment() {
     mutationFn: initializePayment,
     onSuccess: (data) => {
       if (data.checkout_url) {
+        if (data.tx_ref) {
+          sessionStorage.setItem('nestfind_pending_payment_tx_ref', data.tx_ref);
+        }
         toast.success('Redirecting to payment...');
         window.location.href = data.checkout_url;
       } else {

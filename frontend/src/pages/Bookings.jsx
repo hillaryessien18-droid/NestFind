@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Home, CheckCircle, Clock, XCircle, Loader2, ChevronLeft, Calendar } from 'lucide-react';
 import { getBookings } from '@/api/payments';
+import TenantDetailsForm from '@/components/ui/TenantDetailsForm';
 import { formatNaira } from '@/utils/format';
 
 const STATUS_CONFIG = {
@@ -12,6 +13,7 @@ const STATUS_CONFIG = {
 };
 
 export default function Bookings() {
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['bookings'],
     queryFn: () => getBookings(),
@@ -102,6 +104,14 @@ export default function Bookings() {
                     </div>
                   </div>
                 </div>
+                {booking.status === 'confirmed' && booking.booking_type === 'rent' && !booking.has_tenant_details && (
+                  <div className="mt-5 border-t border-gray-100 pt-5">
+                    <TenantDetailsForm
+                      bookingId={booking.id}
+                      onDone={() => queryClient.invalidateQueries({ queryKey: ['bookings'] })}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

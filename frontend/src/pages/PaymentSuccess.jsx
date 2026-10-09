@@ -1,162 +1,100 @@
-import { useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle, Loader2, Home, ArrowRight, ReceiptText } from 'lucide-react';
-import { verifyPayment, getTenantDetails } from '@/api/payments';
-import TenantDetailsForm from '@/components/ui/TenantDetailsForm';
+import { XCircle, Loader2, Home } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { verifyPayment } from '@/api/payments';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const txRef = searchParams.get('tx_ref');
+  const redirected = useRef(false);
+  const callbackStatus = searchParams.get('status')?.toLowerCase();
+  const txRef = searchParams.get('tx_ref') || sessionStorage.getItem('nestfind_pending_payment_tx_ref');
 
-  const { data: result, isLoading, error } = useQuery({
+  const { data: result, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ['payment-verify', txRef],
     queryFn: () => verifyPayment(txRef),
     enabled: !!txRef,
-    retry: false,
+    retry: (failureCount, requestError) =>
+      (!requestError.response || requestError.response.status === 503) && failureCount < 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+    refetchInterval: (query) =>
+      callbackStatus !== 'cancelled' && query.state.data?.status === 'pending' ? 3000 : false,
   });
+
+  const cancelled = callbackStatus === 'cancelled' &&
+    (!txRef || result?.status === 'pending' || result?.status === 'failed');
 
   useEffect(() => {
-    if (result) {
-      queryClient.invalidateQueries(['payment-history']);
-      queryClient.invalidateQueries(['bookings']);
-      queryClient.invalidateQueries(['notifications']);
+    if (cancelled) {
+      sessionStorage.removeItem('nestfind_pending_payment_tx_ref');
     }
-  }, [result, queryClient]);
+  }, [cancelled]);
 
-  const isSuccessful = result?.status === 'successful';
-  const bookingId = result?.booking_id;
-  const isRental = result?.booking_type === 'rent';
+  useEffect(() => {
+    if (result?.status !== 'successful' || redirected.current) return;
+    redirected.current = true;
+    sessionStorage.removeItem('nestfind_pending_payment_tx_ref');
+    queryClient.invalidateQueries({ queryKey: ['payment-history'] });
+    queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    queryClient.invalidateQueries({ queryKey: ['unread-notifications'] });
+    toast.success('Payment confirmed. View your booking in My Bookings.');
+    navigate('/', { replace: true });
+  }, [result, queryClient, navigate]);
 
-  const detailsQuery = useQuery({
-    queryKey: ['tenant-details', bookingId],
-    queryFn: () => getTenantDetails(bookingId),
-    enabled: isSuccessful && isRental && !!bookingId,
-    retry: false,
-  });
-  const hasDetails = !!detailsQuery.data;
-
-  if (!txRef) {
+  if (txRef && (isLoading || isFetching || result?.status === 'successful' || (result?.status === 'pending' && !cancelled))) {
     return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
-        <XCircle className="h-16 w-16 text-red-500" />
-        <h1 className="mt-4 text-xl font-bold text-gray-900">Invalid Payment Link</h1>
-        <p className="mt-2 text-gray-500">No transaction reference found.</p>
-        <Link
-          to="/"
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-        >
-          <Home className="h-4 w-4" /> Go Home
-        </Link>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
         <Loader2 className="h-16 w-16 animate-spin text-primary-600" />
-        <h1 className="mt-4 text-xl font-bold text-gray-900">Verifying Payment...</h1>
-        <p className="mt-2 text-gray-500">Please wait while we confirm your payment.</p>
+        <h1 className="mt-4 text-xl font-bold text-gray-900">Confirming Payment...</h1>
+        <p className="mt-2 text-gray-500">Please wait while we confirm your payment with Flutterwave.</p>
       </div>
     );
   }
 
-  if (error || !result) {
-    return (
-      <div className="flex min-h-[50vh] flex-col items-center justify-center px-4">
-        <XCircle className="h-16 w-16 text-red-500" />
-        <h1 className="mt-4 text-xl font-bold text-gray-900">Verification Failed</h1>
-        <p className="mt-2 text-gray-500">
-          {error?.response?.data?.error || 'Could not verify your payment. Please contact support.'}
-        </p>
-        <div className="mt-6 flex gap-3">
-          <Link
-            to="/payment-history"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-          >
-            View Payment History
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <Home className="h-4 w-4" /> Go Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const canRetry = !!txRef && !cancelled && !!error;
+  const title = cancelled
+    ? 'Payment Cancelled'
+    : !txRef
+      ? 'Payment Reference Missing'
+      : error || !result
+        ? 'Payment Verification Needs Attention'
+        : 'Payment Not Successful';
+  const message = cancelled
+    ? 'No payment was confirmed.'
+    : !txRef
+      ? 'We could not find a transaction reference. Check your payment history or contact support if you were charged.'
+      : error || !result
+        ? 'We could not confirm your payment yet. Please retry before making another payment.'
+        : 'Flutterwave did not confirm this payment. Please try again from the property page.';
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      {isSuccessful ? (
-        <>
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle className="h-12 w-12 text-green-600" />
-            </div>
-            <h1 className="mt-6 text-2xl font-bold text-gray-900">Payment Successful!</h1>
-            <p className="mt-2 max-w-md text-center text-gray-500">
-              Your payment has been confirmed. A welcome message has been sent to your email and inbox.
-              Thank you for choosing NestFind!
-            </p>
-          </div>
-
-          {isRental && !hasDetails && (
-            <div className="mt-8">
-              <TenantDetailsForm bookingId={bookingId} onDone={() => detailsQuery.refetch()} />
-            </div>
-          )}
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to={`/receipt/${txRef}`}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-            >
-              <ReceiptText className="h-4 w-4" /> View Receipt
-            </Link>
-            <Link
-              to="/bookings"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-            >
-              View My Bookings <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
-            <XCircle className="h-12 w-12 text-red-600" />
-          </div>
-          <h1 className="mt-6 text-2xl font-bold text-gray-900">Payment Not Successful</h1>
-          <p className="mt-2 max-w-md text-center text-gray-500">
-            Your payment could not be confirmed. Please try again or contact support.
-          </p>
-        </>
-      )}
-
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        {!isSuccessful && result.booking_id && (
-          <Link
-            to="/bookings"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
+    <div className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
+      <XCircle className="h-16 w-16 text-amber-500" />
+      <h1 className="mt-4 text-xl font-bold text-gray-900">{title}</h1>
+      <p className="mt-2 max-w-md text-gray-500">{message}</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {canRetry && (
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-xl bg-primary-600 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-700"
           >
-            View My Bookings <ArrowRight className="h-4 w-4" />
-          </Link>
-        )}
-        {isSuccessful && (
-          <Link
-            to="/payment-history"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            Payment History
-          </Link>
+            Retry Verification
+          </button>
         )}
         <Link
+          to="/payment-history"
+          className="rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        >
+          Payment History
+        </Link>
+        <Link
           to="/"
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
         >
           <Home className="h-4 w-4" /> Go Home
         </Link>
