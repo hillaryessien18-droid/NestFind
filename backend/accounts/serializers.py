@@ -1,8 +1,18 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+import re
 
 User = get_user_model()
+
+
+def normalize_phone(value):
+    phone = re.sub(r"[\s()-]", "", value or "")
+    if phone.startswith("0") and len(phone) == 11:
+        phone = "+234" + phone[1:]
+    if phone and not re.fullmatch(r"\+[1-9]\d{9,14}", phone):
+        raise serializers.ValidationError("Enter a phone number with country code, such as +2348012345678.")
+    return phone
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -14,9 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "username", "first_name", "last_name",
             "full_name", "phone", "role", "avatar", "bio",
-            "is_verified", "properties_count", "created_at",
+            "is_verified", "phone_verified", "properties_count", "created_at",
         ]
-        read_only_fields = ["id", "is_verified", "created_at"]
+        read_only_fields = ["id", "is_verified", "phone_verified", "created_at"]
 
     def get_properties_count(self, obj):
         if obj.role == "host":
@@ -27,6 +37,9 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+
+    def validate_phone(self, value):
+        return normalize_phone(value)
 
     class Meta:
         model = User
@@ -67,6 +80,19 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
+    def validate_phone(self, value):
+        return normalize_phone(value)
+
+    def update(self, instance, validated_data):
+        phone = validated_data.get("phone", instance.phone)
+        if phone != instance.phone:
+            instance.phone_verified = False
+            instance.phone_verification_code = ""
+            instance.phone_verification_expires_at = None
+            instance.phone_verification_sent_at = None
+            instance.phone_verification_attempts = 0
+        return super().update(instance, validated_data)
+
     class Meta:
         model = User
         fields = [

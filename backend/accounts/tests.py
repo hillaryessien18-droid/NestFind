@@ -4,6 +4,7 @@ from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 from payments.models import Notification
+from unittest.mock import patch
 
 User = get_user_model()
 
@@ -223,12 +224,17 @@ class ChangePasswordAPITests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
     def test_change_password_success(self):
         response = self.client.put("/api/auth/change-password/", {
             "old_password": "OldPass123!",
             "new_password": "NewPass456!",
         })
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(User.objects.get(pk=self.user.pk).check_password("NewPass456!"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].subject, "Your NestFind password was changed")
+        self.assertNotIn("NewPass456!", mail.outbox[0].body)
 
     def test_change_password_wrong_old(self):
         response = self.client.put("/api/auth/change-password/", {
@@ -236,6 +242,61 @@ class ChangePasswordAPITests(TestCase):
             "new_password": "NewPass456!",
         })
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class PhoneVerificationAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            email="phone@example.com", username="phoneuser", password="StrongPass123!",
+            phone="+2348012345678",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    @override_settings(BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
+    @patch("accounts.phone_verification.requests.post")
+    def test_send_and_verify_phone_code(self, post):
+        post.return_value.status_code = 201
+        response = self.client.post("/api/auth/phone/send-code/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(post.call_args.args[0], "https://api.brevo.com/v3/transactionalSMS/send")
+        self.assertEqual(payload["recipient"], "2348012345678")
+        code = payload["content"].split(" is ")[1][:6]
+        self.user.refresh_from_db()
+        self.assertNotEqual(self.user.phone_verification_code, code)
+        self.assertEqual(self.client.post("/api/auth/phone/send-code/").status_code, 429)
+        wrong_code = "000000" if code != "000000" else "111111"
+        self.assertEqual(self.client.post("/api/auth/phone/verify/", {"code": wrong_code}).status_code, 400)
+        self.assertEqual(self.client.post("/api/auth/phone/verify/", {"code": code}).status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.phone_verified)
+
+    @override_settings(BREVO_API_KEY="")
+    def test_sms_failure_and_phone_change(self):
+        self.assertEqual(self.client.post("/api/auth/phone/send-code/").status_code, 503)
+        self.user.phone_verified = True
+        self.user.save(update_fields=["phone_verified"])
+        response = self.client.patch("/api/auth/profile/", {"phone": "08033334444"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["phone"], "+2348033334444")
+        self.assertFalse(response.data["phone_verified"])
+
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django", BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
+    @patch("accounts.phone_verification.requests.post")
+    def test_registration_sends_phone_code(self, post):
+        post.return_value.status_code = 201
+        self.client.force_authenticate(user=None)
+        response = self.client.post("/api/register/", {
+            "email": "newphone@example.com", "username": "newphone",
+            "first_name": "New", "last_name": "Member", "role": "guest",
+            "phone": "08099998888", "password": "StrongPass123!",
+            "password_confirm": "StrongPass123!",
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["user"]["phone"], "+2348099998888")
+        self.assertEqual(post.call_args.kwargs["json"]["recipient"], "2348099998888")
+        self.assertFalse(response.data["user"]["phone_verified"])
 
 
 class LogoutAPITests(TestCase):

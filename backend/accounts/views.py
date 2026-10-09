@@ -4,7 +4,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from payments.models import Notification
-from .emails import send_registration_welcome_email
+from .emails import send_password_changed_email, send_registration_welcome_email
+from .phone_verification import send_phone_code, verify_phone_code
 from .serializers import (
     UserSerializer,
     RegisterSerializer,
@@ -38,10 +39,12 @@ class RegisterView(generics.CreateAPIView):
             link="/my-properties" if user.role == "host" else "/properties",
         )
         send_registration_welcome_email(user)
+        phone_verification_sent = send_phone_code(user) == "sent" if user.phone else False
         refresh = RefreshToken.for_user(user)
         return Response(
             {
                 "user": UserSerializer(user).data,
+                "phone_verification_sent": phone_verification_sent,
                 "tokens": {
                     "refresh": str(refresh),
                     "access": str(refresh.access_token),
@@ -140,7 +143,36 @@ class ChangePasswordView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save()
+        send_password_changed_email(request.user)
         return Response({"message": "Password changed successfully."})
+
+
+class SendPhoneVerificationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        result = send_phone_code(request.user)
+        if result == "sent":
+            return Response({"message": "Verification code sent by SMS."})
+        if result == "rate_limited":
+            return Response({"error": "Wait one minute before requesting another code."}, status=429)
+        if result == "missing_phone":
+            return Response({"error": "Add a phone number to your profile first."}, status=400)
+        if result == "already_verified":
+            return Response({"message": "Phone number is already verified."})
+        return Response({"error": "SMS is currently unavailable. Please try again later."}, status=503)
+
+
+class VerifyPhoneView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        code = str(request.data.get("code", ""))
+        if not (len(code) == 6 and code.isascii() and code.isdecimal()):
+            return Response({"error": "Enter the six-digit verification code."}, status=400)
+        if not verify_phone_code(request.user, code):
+            return Response({"error": "Invalid or expired code. Request a new code if needed."}, status=400)
+        return Response({"message": "Phone number verified."})
 
 
 class UserListView(generics.ListAPIView):

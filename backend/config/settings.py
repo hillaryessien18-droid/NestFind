@@ -255,6 +255,7 @@ DEFAULT_FROM_EMAIL = os.getenv(
 )
 DEFAULT_FROM_NAME = os.getenv("DEFAULT_FROM_NAME", "NestFind")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+BREVO_SMS_SENDER = os.getenv("BREVO_SMS_SENDER", "NestFind")
 
 CLOUDINARY_STORAGE = {
     "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),

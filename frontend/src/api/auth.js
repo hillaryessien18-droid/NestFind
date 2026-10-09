@@ -21,3 +21,9 @@ export const changePassword = (oldPassword, newPassword) =>
       new_password: newPassword,
     })
     .then((response) => response.data);
+
+export const sendPhoneVerificationCode = () =>
+  apiClient.post('/auth/phone/send-code/').then((response) => response.data);
+
+export const verifyPhoneNumber = (code) =>
+  apiClient.post('/auth/phone/verify/', { code }).then((response) => response.data);

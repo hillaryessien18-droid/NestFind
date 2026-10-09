@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { User, Lock } from 'lucide-react';
+import { sendPhoneVerificationCode, verifyPhoneNumber } from '@/api/auth';
 
 const profileSchema = z.object({
   first_name: z.string().min(1, 'Required'),
@@ -19,8 +20,10 @@ const passwordSchema = z.object({
 });
 
 export default function Profile() {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, fetchProfile } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   const { register: regProfile, handleSubmit: handleProfileSubmit, formState: { errors: profileErrors, isSubmitting: profileSubmitting } } = useForm({
     resolver: zodResolver(profileSchema),
@@ -52,6 +55,33 @@ export default function Profile() {
       resetPassword();
     } catch (err) {
       toast.error(err.response?.data?.old_password?.[0] || 'Current password is incorrect');
+    }
+  };
+
+  const onSendPhoneCode = async () => {
+    setPhoneBusy(true);
+    try {
+      await sendPhoneVerificationCode();
+      toast.success('Verification code sent by SMS.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not send a verification code.');
+    } finally {
+      setPhoneBusy(false);
+    }
+  };
+
+  const onVerifyPhone = async (event) => {
+    event.preventDefault();
+    setPhoneBusy(true);
+    try {
+      await verifyPhoneNumber(verificationCode);
+      await fetchProfile();
+      setVerificationCode('');
+      toast.success('Phone number verified.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not verify your phone number.');
+    } finally {
+      setPhoneBusy(false);
     }
   };
 
@@ -104,6 +134,11 @@ export default function Profile() {
           <div>
             <label className="block text-sm font-medium text-gray-700">Phone</label>
             <input {...regProfile('phone')} className={inputClass} placeholder="Optional" />
+            {user?.phone && (
+              <p className={`mt-1 text-xs ${user.phone_verified ? 'text-green-700' : 'text-amber-700'}`}>
+                {user.phone_verified ? 'Phone number verified' : 'Phone number not verified'}
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Bio</label>
@@ -116,6 +151,30 @@ export default function Profile() {
           >
             {profileSubmitting ? 'Saving...' : 'Save Changes'}
           </button>
+        </form>
+      )}
+
+      {activeTab === 'profile' && user?.phone && !user.phone_verified && (
+        <form onSubmit={onVerifyPhone} className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
+          <h2 className="font-semibold text-gray-900">Verify your phone number</h2>
+          <p className="text-sm text-gray-600">Enter the six-digit code sent to {user.phone}. Codes expire after 10 minutes.</p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              pattern="[0-9]{6}"
+              required
+              aria-label="Six-digit phone verification code"
+              value={verificationCode}
+              onChange={(event) => setVerificationCode(event.target.value.replace(/\D/g, ''))}
+              className={`${inputClass} mt-0 max-w-48`}
+              placeholder="123456"
+            />
+            <button type="submit" disabled={phoneBusy} className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Verify phone</button>
+            <button type="button" onClick={onSendPhoneCode} disabled={phoneBusy} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50">Send code</button>
+          </div>
         </form>
       )}
 

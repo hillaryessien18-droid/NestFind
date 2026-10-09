@@ -14,6 +14,11 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True)
+    phone_verified = models.BooleanField(default=False)
+    phone_verification_code = models.CharField(max_length=128, blank=True)
+    phone_verification_expires_at = models.DateTimeField(null=True, blank=True)
+    phone_verification_sent_at = models.DateTimeField(null=True, blank=True)
+    phone_verification_attempts = models.PositiveSmallIntegerField(default=0)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="guest")
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True)

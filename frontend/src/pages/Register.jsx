@@ -11,6 +11,7 @@ const schema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   email: z.string().email('Please enter a valid email'),
+  phone: z.string().optional(),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   password_confirm: z.string(),
@@ -55,9 +56,16 @@ export default function Register() {
 
   const onSubmit = async (data) => {
     try {
-      await registerUser(data);
-      toast.success('Account created successfully!');
-      navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/', { replace: true });
+      const result = await registerUser(data);
+      if (data.phone) {
+        toast.success(result.phone_verification_sent
+          ? 'Account created. Enter your SMS code to verify your phone.'
+          : 'Account created. Request an SMS code from your profile to verify your phone.');
+        navigate('/profile', { replace: true });
+      } else {
+        toast.success('Account created successfully!');
+        navigate(returnTo?.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/', { replace: true });
+      }
     } catch (err) {
       toast.error(registrationErrorMessage(err));
     }
@@ -109,6 +117,12 @@ export default function Register() {
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
             {errors.username && <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Phone number (optional)</label>
+            <input type="tel" {...register('phone')} className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500" placeholder="+2348012345678" />
+            <p className="mt-1 text-xs text-gray-500">We will text a verification code if you add a number.</p>
           </div>
 
           <div>

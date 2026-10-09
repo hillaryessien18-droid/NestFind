@@ -27,3 +27,19 @@ def send_registration_welcome_email(user):
         action_label=action_label,
         action_url=f"{settings.FRONTEND_URL.rstrip('/')}{action_path}",
     )
+
+
+def send_password_changed_email(user):
+    name = user.first_name.strip() or user.full_name or "there"
+    return send_transactional_email(
+        recipient=user.email,
+        recipient_name=user.full_name or user.email,
+        subject="Your NestFind password was changed",
+        greeting=f"Hello {name},",
+        paragraphs=[
+            "The password for your NestFind account was changed successfully.",
+            "If you made this change, no further action is needed. If you did not, contact NestFind support immediately and secure your email account.",
+        ],
+        action_label="Visit NestFind",
+        action_url=settings.FRONTEND_URL.rstrip("/"),
+    )
