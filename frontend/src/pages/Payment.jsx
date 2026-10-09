@@ -40,6 +40,16 @@ export default function Payment() {
     if (!getValues('phone') && user.phone) setValue('phone', user.phone);
   }, [user, getValues, setValue]);
 
+  const minimumLeaseMonths = Math.max(1, Number(property?.minimum_lease_months) || 1);
+
+  useEffect(() => {
+    if (!property || paymentType !== 'rent') return;
+    const selectedMonths = Number(getValues('months'));
+    if (!selectedMonths || selectedMonths < minimumLeaseMonths || selectedMonths > 60) {
+      setValue('months', Math.max(12, minimumLeaseMonths));
+    }
+  }, [property, paymentType, minimumLeaseMonths, getValues, setValue]);
+
   const watchedMonths = watch('months') || 12;
   const watchedStartDate = watch('start_date');
 
@@ -181,23 +191,30 @@ export default function Payment() {
                 <h2 className="mb-4 text-lg font-semibold text-gray-900">Rental Duration</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">Number of Months</label>
+                    <label htmlFor="rental-months" className="mb-1 block text-sm font-medium text-gray-700">Number of Months</label>
                     <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        min={property.minimum_lease_months || 1}
-                        max={60}
+                      <select
+                        id="rental-months"
+                        disabled={minimumLeaseMonths > 60}
                         {...register('months', {
                           required: 'Months is required',
-                          min: { value: property.minimum_lease_months || 1, message: `Minimum ${property.minimum_lease_months || 1} months` },
+                          valueAsNumber: true,
+                          min: { value: minimumLeaseMonths, message: `Minimum ${minimumLeaseMonths} months` },
+                          max: { value: 60, message: 'Maximum 60 months' },
                         })}
-                        className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                      />
+                        className="w-40 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      >
+                        {Array.from({ length: Math.max(0, 61 - minimumLeaseMonths) }, (_, index) => {
+                          const months = minimumLeaseMonths + index;
+                          return <option key={months} value={months}>{months} {months === 1 ? 'month' : 'months'}</option>;
+                        })}
+                      </select>
                       <span className="text-sm text-gray-500">
-                        (min. {property.minimum_lease_months || 1} months)
+                        (min. {minimumLeaseMonths} months)
                       </span>
                     </div>
                     {errors.months && <p className="mt-1 text-xs text-red-500">{errors.months.message}</p>}
+                    {minimumLeaseMonths > 60 && <p className="mt-1 text-xs text-red-500">This property's minimum lease exceeds the maximum supported duration of 60 months.</p>}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Clock className="h-4 w-4" />
@@ -265,7 +282,7 @@ export default function Payment() {
 
             <button
               type="submit"
-              disabled={paymentMutation.isPending}
+              disabled={paymentMutation.isPending || (paymentType === 'rent' && minimumLeaseMonths > 60)}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 py-3.5 text-sm font-semibold text-white transition hover:bg-primary-700 disabled:opacity-50"
             >
               {paymentMutation.isPending ? (
