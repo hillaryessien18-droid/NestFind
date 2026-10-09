@@ -44,16 +44,16 @@ class RegisterView(generics.CreateAPIView):
             user=user,
             title="Welcome to NestFind",
             message=(
-                "Your NestFind account is ready. Start by adding your first listing."
+                "Your account is ready. Complete your email and phone verification, then create your first listing from your dashboard."
                 if user.role == "host" else
-                "Your NestFind account is ready. Explore homes and save the places you love."
+                "Your account is ready. Complete your email and phone verification, then explore available homes and save your favourites."
             ),
             type="welcome",
             link="/my-properties" if user.role == "host" else "/properties",
         )
         send_registration_welcome_email(user)
         email_verification_sent = send_email_code(user) == "sent"
-        phone_verification_sent = send_phone_code(user) == "sent" if user.phone else False
+        phone_verification_sent = send_phone_code(user, welcome=True) == "sent" if user.phone else False
         refresh = RefreshToken.for_user(user)
         return Response(
             {

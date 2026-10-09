@@ -62,6 +62,7 @@ class PaymentTransaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     payment_method = models.CharField(max_length=50, blank=True)
     customer_email = models.EmailField()
+    customer_phone = models.CharField(max_length=20, blank=True)
     customer_name = models.CharField(max_length=255, blank=True)
     verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

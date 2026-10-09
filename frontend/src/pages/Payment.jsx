@@ -80,9 +80,9 @@ export default function Payment() {
       }
     },
     onError: (err) => {
-      toast.error(err.response?.status === 503
+      toast.error(err.response?.data?.phone?.[0] || (err.response?.status === 503
         ? 'Payments are temporarily unavailable. Please try again later.'
-        : 'We could not start your payment. Please check your details and try again.');
+        : 'We could not start your payment. Please check your details and try again.'));
     },
   });
 
@@ -262,9 +262,10 @@ export default function Payment() {
                   <input
                     type="tel"
                     {...register('phone')}
-                    placeholder="Optional"
+                    placeholder="+2348012345678 (optional)"
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Add a phone number to receive your payment confirmation by SMS.</p>
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>

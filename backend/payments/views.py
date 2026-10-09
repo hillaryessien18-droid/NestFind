@@ -18,7 +18,7 @@ from .serializers import (
     TenantDetailSerializer,
 )
 from .services import initialize_payment, verify_payment, generate_tx_ref
-from .emails import send_payment_confirmation_email
+from .emails import send_host_booking_email, send_payment_confirmation_email
 from accounts.phone_verification import send_brevo_sms
 
 logger = logging.getLogger(__name__)
@@ -38,31 +38,30 @@ def payment_details_match(data, transaction):
     )
 
 
-def send_welcome_notification(user, booking):
-    """Create in-app welcome notification after successful payment."""
+def send_payment_notification(user, booking, transaction):
+    """Create the buyer's in-app receipt notification once payment is verified."""
     property_title = booking.property.title
 
     if booking.booking_type == "rent":
-        title = f"Rental Confirmed - {property_title}"
+        title = f"Rental payment confirmed: {property_title}"
         message = (
-            f"Congratulations! Your rental of '{property_title}' has been confirmed. "
-            f"Duration: {booking.months} month(s), Amount: NGN {booking.amount:,.2f}. "
-            f"Start date: {booking.start_date}. Welcome to your new home!"
+            f"Your payment of NGN {booking.amount:,.2f} for {property_title} is confirmed. "
+            f"Lease: {booking.months} month(s), starting {booking.start_date:%d %B %Y}. "
+            f"Reference: {transaction.tx_ref}. View your receipt for the full details."
         )
     else:
-        title = f"Purchase Confirmed - {property_title}"
+        title = f"Purchase payment confirmed: {property_title}"
         message = (
-            f"Congratulations! Your purchase of '{property_title}' has been confirmed. "
-            f"Amount: NGN {booking.amount:,.2f}. "
-            f"Purchase date: {booking.start_date}. Welcome to your new home!"
+            f"Your payment of NGN {booking.amount:,.2f} for {property_title} is confirmed. "
+            f"Reference: {transaction.tx_ref}. View your receipt for the full details."
         )
 
     Notification.objects.create(
         user=user,
         title=title,
         message=message,
-        type="welcome",
-        link=f"/properties/{booking.property.id}",
+        type="payment",
+        link=f"/receipt/{transaction.tx_ref}",
     )
 
 
@@ -71,17 +70,17 @@ def send_host_notification(host, booking, payer_name):
     property_title = booking.property.title
 
     if booking.booking_type == "rent":
-        title = f"New Rental - {property_title}"
+        title = f"Confirmed rental: {property_title}"
         message = (
-            f"{payer_name} has rented your property '{property_title}' "
-            f"for {booking.months} month(s). Amount: NGN {booking.amount:,.2f}. "
-            f"Start date: {booking.start_date}."
+            f"A rental booking for {property_title} has been confirmed. "
+            f"Guest: {payer_name}. Lease: {booking.months} month(s), starting {booking.start_date:%d %B %Y}. "
+            f"Amount: NGN {booking.amount:,.2f}."
         )
     else:
-        title = f"Property Sold - {property_title}"
+        title = f"Confirmed purchase: {property_title}"
         message = (
-            f"{payer_name} has purchased your property '{property_title}'. "
-            f"Amount: NGN {booking.amount:,.2f}."
+            f"A purchase of {property_title} has been confirmed. "
+            f"Buyer: {payer_name}. Amount: NGN {booking.amount:,.2f}."
         )
 
     Notification.objects.create(
@@ -112,14 +111,28 @@ def confirm_payment(booking, transaction):
         buyer.role = "tenant"
         buyer.save(update_fields=["role"])
 
+    host = prop.user
+    send_payment_notification(buyer, booking, transaction)
+    if host.pk != buyer.pk:
+        send_host_notification(host, booking, buyer.full_name or buyer.email)
+
     send_payment_confirmation_email(buyer, booking, transaction)
-    if buyer.phone and buyer.phone_verified:
+    buyer_phone = transaction.customer_phone or (buyer.phone if buyer.phone_verified else "")
+    if buyer_phone:
         send_brevo_sms(
-            buyer.phone,
-            f"NestFind payment confirmed: NGN {booking.amount:,.2f}. Reference: {transaction.tx_ref}.",
+            buyer_phone,
+            f"NestFind: Payment of NGN {booking.amount:,.2f} confirmed for {prop.title[:35]}. "
+            f"Ref: {transaction.tx_ref}. Your receipt is in My Bookings.",
         )
-    send_welcome_notification(buyer, booking)
-    send_host_notification(prop.user, booking, buyer.full_name or buyer.email)
+    if host.pk != buyer.pk:
+        send_host_booking_email(host, booking, transaction, buyer)
+        if host.phone and host.phone_verified:
+            booking_label = "rental booking" if booking.booking_type == "rent" else "property purchase"
+            send_brevo_sms(
+                host.phone,
+                f"NestFind: A {booking_label} for {prop.title[:35]} is confirmed. "
+                f"Amount: NGN {booking.amount:,.2f}. View My Properties for details.",
+            )
 
 
 class PaymentInitializeView(generics.CreateAPIView):
@@ -174,7 +187,9 @@ class PaymentInitializeView(generics.CreateAPIView):
         tx_ref = generate_tx_ref()
         full_name = serializer.validated_data.get("full_name", "") or request.user.full_name or request.user.email
         email = request.user.email
-        phone = serializer.validated_data.get("phone", "") or request.user.phone
+        phone = serializer.validated_data.get("phone", "") or (
+            request.user.phone if request.user.phone_verified else ""
+        )
 
         payment_data = initialize_payment(
             tx_ref=tx_ref,
@@ -192,6 +207,7 @@ class PaymentInitializeView(generics.CreateAPIView):
                 tx_ref=tx_ref,
                 amount=amount,
                 customer_email=email,
+                customer_phone=phone,
                 customer_name=full_name,
                 status="pending",
             )

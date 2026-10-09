@@ -31,7 +31,7 @@ def send_brevo_sms(recipient, content):
                 "content": content,
                 "type": "transactional",
             },
-            timeout=10,
+            timeout=5,
         )
     except requests.RequestException:
         logger.exception("Transactional SMS request failed")
@@ -42,7 +42,7 @@ def send_brevo_sms(recipient, content):
     return True
 
 
-def send_phone_code(user):
+def send_phone_code(user, *, welcome=False):
     if not user.phone:
         return "missing_phone"
     if user.phone_verified:
@@ -51,7 +51,9 @@ def send_phone_code(user):
     if user.phone_verification_sent_at and now - user.phone_verification_sent_at < RESEND_DELAY:
         return "rate_limited"
     code = f"{secrets.randbelow(1_000_000):06d}"
-    if not send_brevo_sms(user.phone, f"Your NestFind phone verification code is {code}. It expires in 10 minutes."):
+    intro = "Welcome to NestFind. " if welcome else ""
+    content = f"{intro}Your phone verification code is {code}. It expires in 10 minutes. Do not share this code."
+    if not send_brevo_sms(user.phone, content):
         return "unavailable"
 
     user.phone_verification_code = make_password(code)

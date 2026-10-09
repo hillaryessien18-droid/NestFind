@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from properties.models import Property
-from .models import Booking, PaymentTransaction
+from .models import Booking, Notification, PaymentTransaction
 from .services import initialize_payment
 
 
@@ -82,17 +82,19 @@ class PaymentFlowTests(APITestCase):
     @patch("payments.views.verify_payment")
     @patch("payments.views.initialize_payment")
     def test_new_user_payment_is_verified_and_confirmed(self, initialize, verify):
-        self.guest.phone = "+2348012345678"
-        self.guest.phone_verified = True
-        self.guest.save(update_fields=["phone", "phone_verified"])
+        self.host.phone = "+2348098765432"
+        self.host.phone_verified = True
+        self.host.save(update_fields=["phone", "phone_verified"])
         initialize.return_value = {
             "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
         }
         self.client.force_authenticate(user=self.guest)
         created = self.client.post("/api/payments/initialize/", {
-            "property_id": str(self.property.id), "booking_type": "purchase"
+            "property_id": str(self.property.id), "booking_type": "purchase",
+            "phone": "08012345678",
         }, format="json")
         tx_ref = created.data["tx_ref"]
+        self.assertEqual(PaymentTransaction.objects.get(tx_ref=tx_ref).customer_phone, "+2348012345678")
         verify.return_value = {"status": "success", "data": {
             "status": "successful", "tx_ref": tx_ref, "currency": "NGN",
             "amount": 1200000, "flw_ref": "FLW-123", "payment_type": "card",
@@ -101,8 +103,9 @@ class PaymentFlowTests(APITestCase):
         with patch("accounts.phone_verification.requests.post") as sms:
             sms.return_value.status_code = 201
             response = self.client.get(f"/api/payments/verify/{tx_ref}/")
-            self.assertEqual(sms.call_args.kwargs["json"]["recipient"], "2348012345678")
-            self.assertIn(tx_ref, sms.call_args.kwargs["json"]["content"])
+            recipients = [call.kwargs["json"]["recipient"] for call in sms.call_args_list]
+            self.assertEqual(recipients, ["2348012345678", "2348098765432"])
+            self.assertIn(tx_ref, sms.call_args_list[0].kwargs["json"]["content"])
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "successful")
@@ -111,19 +114,26 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(Booking.objects.get(id=created.data["booking_id"]).status, "confirmed")
         self.guest.refresh_from_db()
         self.assertEqual(self.guest.role, "tenant")
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertEqual(mail.outbox[0].to, [self.guest.email])
         self.assertIn("Payment confirmed", mail.outbox[0].subject)
         self.assertIn(tx_ref, mail.outbox[0].body)
         self.assertIn("NGN 1,200,000.00", mail.outbox[0].body)
         self.assertIn(f"/receipt/{tx_ref}", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[1].to, [self.host.email])
+        self.assertIn("Confirmed purchase", mail.outbox[1].subject)
+        self.assertTrue(Notification.objects.filter(user=self.guest, type="payment", link=f"/receipt/{tx_ref}").exists())
+        self.assertTrue(Notification.objects.filter(user=self.host, type="booking").exists())
         self.client.get(f"/api/payments/verify/{tx_ref}/")
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
 
-    @override_settings(EMAIL_DELIVERY_PROVIDER="django")
+    @override_settings(EMAIL_DELIVERY_PROVIDER="django", BREVO_API_KEY="test-key", BREVO_SMS_SENDER="NestFind")
     @patch("payments.views.verify_payment")
     @patch("payments.views.initialize_payment")
     def test_rental_payment_email_includes_move_in_details(self, initialize, verify):
+        self.tenant.phone = "+2348055551234"
+        self.tenant.phone_verified = True
+        self.tenant.save(update_fields=["phone", "phone_verified"])
         initialize.return_value = {
             "status": "success", "data": {"link": "https://checkout.flutterwave.com/test"}
         }
@@ -137,12 +147,17 @@ class PaymentFlowTests(APITestCase):
             "amount": 3600000, "flw_ref": "FLW-RENT", "payment_type": "card",
         }}
 
-        response = self.client.get(f"/api/payments/verify/{tx_ref}/")
+        with patch("accounts.phone_verification.requests.post") as sms:
+            sms.return_value.status_code = 201
+            response = self.client.get(f"/api/payments/verify/{tx_ref}/")
+            self.assertEqual(sms.call_args.kwargs["json"]["recipient"], "2348055551234")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(len(mail.outbox), 2)
         self.assertIn("Lease duration: 3 month(s)", mail.outbox[0].body)
         self.assertIn("complete your move-in details", mail.outbox[0].body)
+        self.assertEqual(mail.outbox[1].to, [self.host.email])
+        self.assertIn("Lease duration: 3 month(s)", mail.outbox[1].body)
 
     @patch("payments.views.verify_payment")
     @patch("payments.views.initialize_payment")

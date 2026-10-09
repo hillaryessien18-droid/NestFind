@@ -53,7 +53,7 @@ def send_transactional_email(*, recipient, recipient_name, subject, greeting, pa
                     "subject": subject,
                     "htmlContent": html_content,
                 },
-                timeout=10,
+                timeout=5,
             )
         except requests.RequestException:
             logger.exception("Transactional email request failed")

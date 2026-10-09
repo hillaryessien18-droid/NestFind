@@ -305,6 +305,8 @@ class PhoneVerificationAPITests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data["user"]["phone"], "+2348099998888")
         self.assertEqual(post.call_args.kwargs["json"]["recipient"], "2348099998888")
+        self.assertIn("Welcome to NestFind", post.call_args.kwargs["json"]["content"])
+        self.assertIn("verification code", post.call_args.kwargs["json"]["content"])
         self.assertFalse(response.data["user"]["phone_verified"])
 
     @override_settings(BREVO_API_KEY="shared-key", BREVO_SMS_SENDER="NestFind")

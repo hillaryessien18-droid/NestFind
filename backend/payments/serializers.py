@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from accounts.serializers import normalize_phone
 from .models import Booking, PaymentTransaction, TenantDetail, Notification
 
 
@@ -90,6 +91,9 @@ class PaymentInitializeSerializer(serializers.Serializer):
     start_date = serializers.DateField(required=False)
     full_name = serializers.CharField(max_length=255, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+
+    def validate_phone(self, value):
+        return normalize_phone(value)
 
 
 class TenantDetailSerializer(serializers.ModelSerializer):

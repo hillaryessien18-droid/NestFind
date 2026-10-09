@@ -20,9 +20,10 @@ def send_registration_welcome_email(user):
         subject="Welcome to NestFind",
         greeting=f"Hello {name},",
         paragraphs=[
-            "Welcome to NestFind. Your account is ready, and we're glad you're here.",
+            "Welcome to NestFind. Your account has been created successfully.",
             next_step,
-            "We'll keep your enquiries, bookings, and account updates together so you can follow each step with confidence.",
+            "Please verify your email address using the separate code. If you added a phone number, you can verify it with an SMS code from your profile.",
+            "You can review your enquiries, bookings, and account updates from your NestFind account at any time.",
         ],
         action_label=action_label,
         action_url=f"{settings.FRONTEND_URL.rstrip('/')}{action_path}",
@@ -37,11 +38,11 @@ def send_password_changed_email(user):
         subject="Your NestFind password was changed",
         greeting=f"Hello {name},",
         paragraphs=[
-            "The password for your NestFind account was changed successfully.",
-            "If you made this change, no further action is needed. If you did not, contact NestFind support immediately and secure your email account.",
+            "Your NestFind account password was changed successfully.",
+            "If you made this change, no further action is needed. If you did not, reset your password immediately and contact NestFind support.",
         ],
-        action_label="Visit NestFind",
-        action_url=settings.FRONTEND_URL.rstrip("/"),
+        action_label="Secure your account",
+        action_url=f"{settings.FRONTEND_URL.rstrip('/')}/forgot-password",
     )
 
 
@@ -53,7 +54,7 @@ def send_email_verification_code(user, code):
         greeting=f"Hello {user.first_name.strip() or 'there'},",
         paragraphs=[
             f"Your NestFind email verification code is {code}.",
-            "Enter this code in your profile within 10 minutes. If you did not create this account, you can ignore this message.",
+            "Enter this code in your profile within 10 minutes. Do not share it with anyone. If you did not create this account, you can ignore this email.",
         ],
     )
 
@@ -65,8 +66,8 @@ def send_password_reset_email(user, url):
         subject="Reset your NestFind password",
         greeting=f"Hello {user.first_name.strip() or 'there'},",
         paragraphs=[
-            "We received a request to reset your NestFind password. This link expires in one hour.",
-            "If you did not request this, you can ignore this email. Your password has not changed.",
+            "We received a request to reset your NestFind password. Use the secure link below within one hour.",
+            "If you did not request a reset, you can ignore this email. Your password remains unchanged.",
         ],
         action_label="Reset password",
         action_url=url,
@@ -80,8 +81,8 @@ def send_login_alert_email(user):
         subject="New sign-in to your NestFind account",
         greeting=f"Hello {user.first_name.strip() or 'there'},",
         paragraphs=[
-            "Your NestFind account was just signed in to.",
-            "If this was you, no action is needed. If you do not recognize this activity, reset your password immediately.",
+            "A successful sign-in to your NestFind account was recorded.",
+            "If this was you, no action is needed. If you do not recognize this activity, reset your password immediately and contact NestFind support.",
         ],
         action_label="Secure your account",
         action_url=f"{settings.FRONTEND_URL.rstrip('/')}/forgot-password",
