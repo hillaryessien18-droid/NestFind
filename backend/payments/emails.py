@@ -3,7 +3,7 @@ from django.conf import settings
 from core.email_delivery import send_transactional_email
 
 
-def send_payment_confirmation_email(user, booking, transaction):
+def send_payment_confirmation_email(user, booking, transaction, intro=None):
     property_obj = booking.property
     name = user.first_name.strip() or user.full_name or "there"
     is_rental = booking.booking_type == "rent"
@@ -25,7 +25,7 @@ def send_payment_confirmation_email(user, booking, transaction):
         "Your purchase confirmation is available in My Bookings, and your receipt is ready to view online."
     )
     paragraphs = [
-        "Your payment has been verified and your booking is confirmed. Thank you for choosing NestFind.",
+        intro or "Your payment has been verified and your booking is confirmed. Thank you for choosing NestFind.",
         next_step,
         "Please keep this confirmation and your receipt for your records. You can review the booking in your account at any time.",
     ]
@@ -41,7 +41,7 @@ def send_payment_confirmation_email(user, booking, transaction):
     )
 
 
-def send_host_booking_email(host, booking, transaction, buyer):
+def send_host_booking_email(host, booking, transaction, buyer, intro=None):
     property_obj = booking.property
     is_rental = booking.booking_type == "rent"
     details = [
@@ -62,7 +62,7 @@ def send_host_booking_email(host, booking, transaction, buyer):
         subject=f"Confirmed {'rental' if is_rental else 'purchase'} for {property_obj.title} | NestFind",
         greeting=f"Hello {host.first_name.strip() or 'there'},",
         paragraphs=[
-            f"A {'rental booking' if is_rental else 'purchase'} for your property has been confirmed following a verified payment.",
+            intro or f"A {'rental booking' if is_rental else 'purchase'} for your property has been confirmed following a verified payment.",
             "Please sign in to NestFind to review the booking and coordinate the next steps with your customer.",
         ],
         details=details,

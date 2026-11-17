@@ -1,4 +1,5 @@
 import os
+import sys
 import warnings
 from pathlib import Path
 from datetime import timedelta
@@ -246,6 +247,15 @@ if not DEBUG:
             RuntimeWarning,
         )
         FRONTEND_URL = _production_frontend_url
+
+# AI-written welcome and payment messages (falls back to fixed text when off or failing)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+AI_MESSAGES_ENABLED = os.getenv("AI_MESSAGES_ENABLED", "True").lower() == "true"
+AI_MESSAGES_MODEL = os.getenv("AI_MESSAGES_MODEL", "claude-haiku-5-5")
+AI_MESSAGES_TIMEOUT = float(os.getenv("AI_MESSAGES_TIMEOUT", "6"))
+# Never call the AI provider from the test suite; tests opt in with override_settings.
+if len(sys.argv) > 1 and sys.argv[1] == "test":
+    AI_MESSAGES_ENABLED = False
 
 _email_backend = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"

@@ -3,7 +3,7 @@ from django.conf import settings
 from core.email_delivery import send_transactional_email
 
 
-def send_registration_welcome_email(user):
+def send_registration_welcome_email(user, intro=None):
     name = user.first_name.strip() or user.full_name or "there"
     is_host = user.role == "host"
     if is_host:
@@ -20,7 +20,7 @@ def send_registration_welcome_email(user):
         subject="Welcome to NestFind",
         greeting=f"Hello {name},",
         paragraphs=[
-            "Welcome to NestFind. Your account has been created successfully.",
+            intro or "Welcome to NestFind. Your account has been created successfully.",
             next_step,
             "Please verify your email address using the separate code. If you added a phone number, you can verify it with an SMS code from your profile.",
             "You can review your enquiries, bookings, and account updates from your NestFind account at any time.",
