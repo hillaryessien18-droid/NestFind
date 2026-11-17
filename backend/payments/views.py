@@ -20,6 +20,7 @@ from .serializers import (
 from .services import initialize_payment, verify_payment, generate_tx_ref
 from .emails import send_host_booking_email, send_payment_confirmation_email
 from accounts.phone_verification import send_brevo_sms
+from core.ai_messages import host_booking_messages, payment_messages
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def payment_details_match(data, transaction):
     )
 
 
-def send_payment_notification(user, booking, transaction):
+def send_payment_notification(user, booking, transaction, opener=""):
     """Create the buyer's in-app receipt notification once payment is verified."""
     property_title = booking.property.title
 
@@ -56,6 +57,9 @@ def send_payment_notification(user, booking, transaction):
             f"Reference: {transaction.tx_ref}. View your receipt for the full details."
         )
 
+    if opener:
+        message = f"{opener} {message}"
+
     Notification.objects.create(
         user=user,
         title=title,
@@ -65,7 +69,7 @@ def send_payment_notification(user, booking, transaction):
     )
 
 
-def send_host_notification(host, booking, payer_name):
+def send_host_notification(host, booking, payer_name, opener=""):
     """Notify the property host about the new booking."""
     property_title = booking.property.title
 
@@ -82,6 +86,9 @@ def send_host_notification(host, booking, payer_name):
             f"A purchase of {property_title} has been confirmed. "
             f"Buyer: {payer_name}. Amount: NGN {booking.amount:,.2f}."
         )
+
+    if opener:
+        message = f"{opener} {message}"
 
     Notification.objects.create(
         user=host,
@@ -112,11 +119,13 @@ def confirm_payment(booking, transaction):
         buyer.save(update_fields=["role"])
 
     host = prop.user
-    send_payment_notification(buyer, booking, transaction)
-    if host.pk != buyer.pk:
-        send_host_notification(host, booking, buyer.full_name or buyer.email)
+    buyer_text = payment_messages(buyer, booking)
+    host_text = host_booking_messages(host, booking) if host.pk != buyer.pk else None
+    send_payment_notification(buyer, booking, transaction, opener=buyer_text["notification"])
+    if host_text:
+        send_host_notification(host, booking, buyer.full_name or buyer.email, opener=host_text["notification"])
 
-    send_payment_confirmation_email(buyer, booking, transaction)
+    send_payment_confirmation_email(buyer, booking, transaction, intro=buyer_text["email_intro"])
     buyer_phone = transaction.customer_phone or (buyer.phone if buyer.phone_verified else "")
     if buyer_phone:
         send_brevo_sms(
@@ -125,7 +134,7 @@ def confirm_payment(booking, transaction):
             f"Ref: {transaction.tx_ref}. Your receipt is in My Bookings.",
         )
     if host.pk != buyer.pk:
-        send_host_booking_email(host, booking, transaction, buyer)
+        send_host_booking_email(host, booking, transaction, buyer, intro=host_text["email_intro"])
         if host.phone and host.phone_verified:
             booking_label = "rental booking" if booking.booking_type == "rent" else "property purchase"
             send_brevo_sms(

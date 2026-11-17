@@ -13,6 +13,7 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from datetime import timedelta
 from payments.models import Notification
+from core.ai_messages import welcome_messages
 from .emails import (
     send_login_alert_email, send_password_changed_email, send_password_reset_email,
     send_registration_welcome_email,
@@ -40,18 +41,15 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        welcome = welcome_messages(user)
         Notification.objects.create(
             user=user,
             title="Welcome to NestFind",
-            message=(
-                "Your account is ready. Complete your email and phone verification, then create your first listing from your dashboard."
-                if user.role == "host" else
-                "Your account is ready. Complete your email and phone verification, then explore available homes and save your favourites."
-            ),
+            message=welcome["notification"],
             type="welcome",
             link="/my-properties" if user.role == "host" else "/properties",
         )
-        send_registration_welcome_email(user)
+        send_registration_welcome_email(user, intro=welcome["email_intro"])
         email_verification_sent = send_email_code(user) == "sent"
         phone_verification_sent = send_phone_code(user, welcome=True) == "sent" if user.phone else False
         refresh = RefreshToken.for_user(user)

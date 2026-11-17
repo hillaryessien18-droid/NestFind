@@ -27,6 +27,7 @@ Searching for a home can mean jumping between scattered listings with unclear pr
 - Create an account, verify contact details, save properties, review listings, and send enquiries to hosts.
 - Let hosts create listings, upload images, and manage their properties and enquiries.
 - Book rentals or purchases, pay through Flutterwave, and view receipts, payment history, and notifications.
+- Send AI-written welcome and payment confirmation messages (email and in-app), with fixed text as a fallback. Set `ANTHROPIC_API_KEY` in the backend environment to turn it on.
 
 ## Technology Stack
 
